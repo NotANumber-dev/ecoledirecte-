@@ -428,73 +428,469 @@
     }
     
     function renderEspaceTravail() {
-      var contentDiv = document.getElementById('main-content');
-      if (!contentDiv) return;
-      
-      if (!espaceData || espaceData.length === 0) {
-        contentDiv.innerHTML = '<div class="empty-state"><p>Aucun espace de travail disponible</p></div>';
-        return;
-      }
-      
-      var mySpaces = [];
-      var otherSpaces = [];
-      
-      for (var i = 0; i < espaceData.length; i++) {
-        var space = espaceData[i];
-        if (space.estMembre === true) {
-          mySpaces.push(space);
-        } else {
-          otherSpaces.push(space);
-        }
-      }
-      
-      var html = '';
-      
-      if (mySpaces.length > 0) {
-        html += '<h2 style="color:#5E5EFF;margin-bottom:16px;font-size:20px;">Mes espaces</h2>';
-        html += '<div class="espaces-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:32px;">';
-        for (var i = 0; i < mySpaces.length; i++) {
-          var space = mySpaces[i];
-          var resumeText = decodeContent(space.resume || "");
-          html += '<div class="espace-card" style="background:#1C1C2E;border-radius:16px;padding:16px;border-left:4px solid #5E5EFF;">';
-          html += '<h3 style="color:white;font-size:16px;margin-bottom:8px;">' + space.titre + '</h3>';
-          if (resumeText) {
-            html += '<p style="color:#8E8E93;font-size:13px;margin-bottom:12px;">' + resumeText + '</p>';
-          }
-          html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">';
-          if (space.cloud) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#5E5EFF;">☁️ Cloud</span>';
-          if (space.discussion) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#5E5EFF;">💬 Discussion</span>';
-          if (space.agenda) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#5E5EFF;">📅 Agenda</span>';
-          html += '</div>';
-          html += '<div style="margin-top:12px;"><span style="color:#8E8E93;font-size:11px;">Créé par: ' + (space.creePar || "Inconnu") + '</span></div>';
-          html += '</div>';
-        }
-        html += '</div>';
-      }
-      
-      if (otherSpaces.length > 0) {
-        html += '<h2 style="color:#8E8E93;margin-bottom:16px;font-size:18px;">🌐 Autres espaces disponibles</h2>';
-        html += '<div class="espaces-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">';
-        for (var i = 0; i < otherSpaces.length; i++) {
-          var space = otherSpaces[i];
-          var resumeText = decodeContent(space.resume || "");
-          html += '<div class="espace-card" style="background:#1C1C2E;border-radius:16px;padding:16px;border-left:4px solid #2C2C44;opacity:0.8;">';
-          html += '<h3 style="color:white;font-size:16px;margin-bottom:8px;">' + space.titre + '</h3>';
-          if (resumeText) {
-            html += '<p style="color:#8E8E93;font-size:13px;margin-bottom:12px;">' + resumeText + '</p>';
-          }
-          html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">';
-          if (space.cloud) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#8E8E93;">☁️ Cloud</span>';
-          if (space.discussion) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#8E8E93;">💬 Discussion</span>';
-          if (space.agenda) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#8E8E93;">📅 Agenda</span>';
-          html += '</div>';
-          html += '</div>';
-        }
-        html += '</div>';
-      }
-      
-      contentDiv.innerHTML = html;
+  var contentDiv = document.getElementById('main-content');
+  if (!contentDiv) return;
+  
+  if (!espaceData || espaceData.length === 0) {
+    contentDiv.innerHTML = '<div class="empty-state"><p>Aucun espace de travail disponible</p></div>';
+    return;
+  }
+  
+  var mySpaces = [];
+  var otherSpaces = [];
+  
+  for (var i = 0; i < espaceData.length; i++) {
+    var space = espaceData[i];
+    if (space.estMembre === true) {
+      mySpaces.push(space);
+    } else {
+      otherSpaces.push(space);
     }
+  }
+  
+  var html = '';
+  
+  if (mySpaces.length > 0) {
+    html += '<h2 style="color:#5E5EFF;margin-bottom:16px;font-size:20px;">Mes espaces</h2>';
+    html += '<div class="espaces-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:32px;">';
+    for (var i = 0; i < mySpaces.length; i++) {
+      var space = mySpaces[i];
+      var resumeText = decodeContent(space.resume || "");
+      html += '<div class="espace-card" data-space-id="' + space.id + '" data-space-title="' + space.titre.replace(/'/g, "\\'") + '" style="background:#1C1C2E;border-radius:16px;padding:16px;border-left:4px solid #5E5EFF;cursor:pointer;">';
+      html += '<h3 style="color:white;font-size:16px;margin-bottom:8px;">' + space.titre + '</h3>';
+      if (resumeText) {
+        html += '<p style="color:#8E8E93;font-size:13px;margin-bottom:12px;">' + resumeText + '</p>';
+      }
+      html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">';
+      if (space.cloud) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#5E5EFF;">Cloud</span>';
+      if (space.discussion) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#5E5EFF;">Discussion</span>';
+      if (space.agenda) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#5E5EFF;">Agenda</span>';
+      html += '</div>';
+      html += '<div style="margin-top:12px;"><span style="color:#8E8E93;font-size:11px;">Cree par: ' + (space.creePar || "Inconnu") + '</span></div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  
+  if (otherSpaces.length > 0) {
+    html += '<h2 style="color:#8E8E93;margin-bottom:16px;font-size:18px;">Autres espaces disponibles</h2>';
+    html += '<div class="espaces-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">';
+    for (var i = 0; i < otherSpaces.length; i++) {
+      var space = otherSpaces[i];
+      var resumeText = decodeContent(space.resume || "");
+      html += '<div class="espace-card" style="background:#1C1C2E;border-radius:16px;padding:16px;border-left:4px solid #2C2C44;opacity:0.8;">';
+      html += '<h3 style="color:white;font-size:16px;margin-bottom:8px;">' + space.titre + '</h3>';
+      if (resumeText) {
+        html += '<p style="color:#8E8E93;font-size:13px;margin-bottom:12px;">' + resumeText + '</p>';
+      }
+      html += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">';
+      if (space.cloud) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#8E8E93;">Cloud</span>';
+      if (space.discussion) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#8E8E93;">Discussion</span>';
+      if (space.agenda) html += '<span style="background:#2C2C44;padding:4px 8px;border-radius:8px;font-size:11px;color:#8E8E93;">Agenda</span>';
+      html += '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  
+  contentDiv.innerHTML = html;
+  
+  var spaceCards = document.querySelectorAll('.espace-card[data-space-id]');
+  for (var i = 0; i < spaceCards.length; i++) {
+    spaceCards[i].addEventListener('click', function(e) {
+      var spaceId = this.getAttribute('data-space-id');
+      var spaceTitle = this.getAttribute('data-space-title');
+      showCloudExplorer(spaceId, spaceTitle);
+    });
+  }
+}
+
+    var currentSpaceId = null;
+
+function showCloudExplorer(spaceId, spaceTitle) {
+  currentSpaceId = spaceId;
+  fetchCloudContent(spaceId);
+}
+
+function fetchCloudContent(spaceId) {
+  var contentDiv = document.getElementById('main-content');
+  if (!contentDiv) return;
+  
+  contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
+  
+  fetch(`https://api.ecoledirecte.com/v3/cloud/W/${spaceId}.awp?verbe=get&v=4.98.0`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Token": token
+    },
+    body: "data=" + encodeURIComponent(JSON.stringify({}))
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(json) {
+    renderCloudExplorer(json.data, spaceId);
+  })
+  .catch(function(e) {
+    contentDiv.innerHTML = '<div class="empty-state"><p>Erreur: ' + e.message + '</p><button id="cloudBackBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-top:20px;">← Retour</button></div>';
+    document.getElementById('cloudBackBtn').addEventListener('click', function() {
+      renderEspaceTravail();
+    });
+  });
+}
+
+function renderCloudExplorer(data, spaceId) {
+  var contentDiv = document.getElementById('main-content');
+  if (!contentDiv) return;
+  
+  var html = '<div style="margin-bottom:20px;">';
+  html += '<button id="cloudBackToSpacesBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour aux espaces</button>';
+  html += '</div>';
+  
+  if (data && data.length > 0) {
+    html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
+    
+    for (var i = 0; i < data.length; i++) {
+      var item = data[i];
+      var isFolder = item.type === 'folder';
+      var icon = isFolder ? '📁' : '📄';
+      
+      html += '<div style="padding:12px 16px;border-bottom:1px solid #2C2C44;display:flex;align-items:center;justify-content:space-between;' + (isFolder ? 'cursor:pointer;' : '') + '"';
+      
+      if (isFolder) {
+        html += ' onclick="window.navigateToFolder(\'' + encodeURIComponent(item.id) + '\', \'' + encodeURIComponent(spaceId) + '\')"';
+      }
+      
+      html += '>';
+      html += '<div style="display:flex;align-items:center;gap:12px;">';
+      html += '<span style="font-size:18px;">' + icon + '</span>';
+      html += '<span style="color:#E0E0E0;">' + item.libelle + '</span>';
+      html += '</div>';
+      
+      if (!isFolder) {
+        html += '<span style="color:#8E8E93;font-size:12px;">' + formatFileSize(item.taille) + '</span>';
+      } else {
+        html += '<span style="color:#5E5EFF;font-size:12px;">Dossier</span>';
+      }
+      
+      html += '</div>';
+    }
+    
+    html += '</div>';
+  } else {
+    html += '<div class="empty-state"><p>Dossier vide</p></div>';
+  }
+  
+  contentDiv.innerHTML = html;
+  
+  document.getElementById('cloudBackToSpacesBtn').addEventListener('click', function() {
+    renderEspaceTravail();
+  });
+}
+
+window.navigateToFolder = function(folderId, spaceId) {
+  var contentDiv = document.getElementById('main-content');
+  if (!contentDiv) return;
+  
+  contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
+  
+  fetch(`https://api.ecoledirecte.com/v3/cloud/W/${spaceId}.awp?verbe=get&v=4.98.0`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Token": token
+    },
+    body: "data=" + encodeURIComponent(JSON.stringify({}))
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(json) {
+    function findFolder(items, targetId) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === targetId) {
+          return items[i];
+        }
+        if (items[i].children && items[i].children.length > 0) {
+          var found = findFolder(items[i].children, targetId);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+    
+    var folder = findFolder(json.data, folderId);
+    if (folder && folder.children) {
+      renderFolderContents(folder, spaceId);
+    } else {
+      renderCloudExplorer(json.data, spaceId);
+    }
+  })
+  .catch(function(e) {
+    contentDiv.innerHTML = '<div class="empty-state"><p>Erreur: ' + e.message + '</p><button id="folderBackBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-top:20px;">← Retour</button></div>';
+    document.getElementById('folderBackBtn').addEventListener('click', function() {
+      fetchCloudContent(spaceId);
+    });
+  });
+};
+
+function renderFolderContents(folder, spaceId) {
+  var contentDiv = document.getElementById('main-content');
+  if (!contentDiv) return;
+  
+  var html = '<div style="margin-bottom:20px;">';
+  html += '<button id="folderBackBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour</button>';
+  html += '</div>';
+  html += '<div style="background:#1C1C2E;border-radius:16px;padding:16px;margin-bottom:16px;">';
+  html += '<h3 style="color:#5E5EFF;">📁 ' + folder.libelle + '</h3>';
+  html += '</div>';
+  
+  if (folder.children && folder.children.length > 0) {
+    html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
+    
+    for (var i = 0; i < folder.children.length; i++) {
+      var item = folder.children[i];
+      var isFolder = item.type === 'folder';
+      var icon = isFolder ? '📁' : '📄';
+      
+      html += '<div style="padding:12px 16px;border-bottom:1px solid #2C2C44;display:flex;align-items:center;justify-content:space-between;' + (isFolder ? 'cursor:pointer;' : '') + '"';
+      
+      if (isFolder) {
+        html += ' onclick="window.navigateToFolder(\'' + encodeURIComponent(item.id) + '\', \'' + encodeURIComponent(spaceId) + '\')"';
+      }
+      
+      html += '>';
+      html += '<div style="display:flex;align-items:center;gap:12px;">';
+      html += '<span style="font-size:18px;">' + icon + '</span>';
+      html += '<span style="color:#E0E0E0;">' + item.libelle + '</span>';
+      html += '</div>';
+      
+      if (!isFolder) {
+        html += '<span style="color:#8E8E93;font-size:12px;">' + formatFileSize(item.taille) + '</span>';
+      } else {
+        html += '<span style="color:#5E5EFF;font-size:12px;">Dossier</span>';
+      }
+      
+      html += '</div>';
+    }
+    
+    html += '</div>';
+  } else {
+    html += '<div class="empty-state"><p>Dossier vide</p></div>';
+  }
+  
+  contentDiv.innerHTML = html;
+  
+  document.getElementById('folderBackBtn').addEventListener('click', function() {
+    fetchCloudContent(spaceId);
+  });
+}
+window.navigateToFolder = function(folderId, spaceId) {
+  var contentDiv = document.getElementById('main-content');
+  if (!contentDiv) return;
+  
+  contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
+  
+  fetch(`https://api.ecoledirecte.com/v3/cloud/W/${spaceId}.awp?verbe=get&v=4.98.0`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Token": token
+    },
+    body: "data=" + encodeURIComponent(JSON.stringify({}))
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(json) {
+    function findFolder(items, targetId) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === targetId) {
+          return items[i];
+        }
+        if (items[i].children && items[i].children.length > 0) {
+          var found = findFolder(items[i].children, targetId);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+    
+    var folder = findFolder(json.data, folderId);
+    if (folder && folder.children) {
+      renderFolderContents(folder, spaceId);
+    } else {
+      renderCloudExplorer(json.data, spaceId);
+    }
+  })
+  .catch(function(e) {
+    contentDiv.innerHTML = '<div class="empty-state"><p>Erreur: ' + e.message + '</p><button id="folderBackBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-top:20px;">← Retour</button></div>';
+    document.getElementById('folderBackBtn').addEventListener('click', function() {
+      fetchCloudContent(spaceId);
+    });
+  });
+};
+
+function renderFolderContents(folder, spaceId) {
+  var contentDiv = document.getElementById('main-content');
+  if (!contentDiv) return;
+  
+  var html = '<div style="margin-bottom:20px;">';
+  html += '<button id="folderBackBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour</button>';
+  html += '</div>';
+  html += '<div style="background:#1C1C2E;border-radius:16px;padding:16px;margin-bottom:16px;">';
+  html += '<h3 style="color:#5E5EFF;">📁 ' + folder.libelle + '</h3>';
+  html += '</div>';
+  
+  if (folder.children && folder.children.length > 0) {
+    html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
+    
+    for (var i = 0; i < folder.children.length; i++) {
+      var item = folder.children[i];
+      var isFolder = item.type === 'folder';
+      var icon = isFolder ? '📁' : '📄';
+      
+      html += '<div style="padding:12px 16px;border-bottom:1px solid #2C2C44;display:flex;align-items:center;justify-content:space-between;' + (isFolder ? 'cursor:pointer;' : '') + '"';
+      
+      if (isFolder) {
+        html += ' onclick="window.navigateToFolder(\'' + encodeURIComponent(item.id) + '\', \'' + encodeURIComponent(spaceId) + '\')"';
+      }
+      
+      html += '>';
+      html += '<div style="display:flex;align-items:center;gap:12px;">';
+      html += '<span style="font-size:18px;">' + icon + '</span>';
+      html += '<span style="color:#E0E0E0;">' + item.libelle + '</span>';
+      html += '</div>';
+      
+      if (!isFolder) {
+        html += '<span style="color:#8E8E93;font-size:12px;">' + formatFileSize(item.taille) + '</span>';
+      } else {
+        html += '<span style="color:#5E5EFF;font-size:12px;">Dossier</span>';
+      }
+      
+      html += '</div>';
+    }
+    
+    html += '</div>';
+  } else {
+    html += '<div class="empty-state"><p>Dossier vide</p></div>';
+  }
+  
+  contentDiv.innerHTML = html;
+  
+  document.getElementById('folderBackBtn').addEventListener('click', function() {
+    fetchCloudContent(spaceId);
+  });
+}
+
+window.navigateToFolder = function(folderId) {
+  var contentDiv = document.getElementById('main-content');
+  if (!contentDiv) return;
+  
+  contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
+  
+  var decodedId = decodeURIComponent(folderId);
+  
+  fetch(`https://api.ecoledirecte.com/v3/cloud/W/${currentSpaceId}.awp?verbe=get&v=4.98.0`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Token": token
+    },
+    body: "data=" + encodeURIComponent(JSON.stringify({}))
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(json) {
+    function findFolder(items, targetId) {
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === targetId) {
+          return items[i];
+        }
+        if (items[i].children && items[i].children.length > 0) {
+          var found = findFolder(items[i].children, targetId);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+    
+    var folder = findFolder(json.data, decodedId);
+    if (folder && folder.children) {
+      renderSingleFolder(folder, decodedId);
+    } else {
+      renderCloudExplorer(json.data, currentSpaceId);
+    }
+  })
+  .catch(function(e) {
+    contentDiv.innerHTML = '<div class="empty-state"><p>Erreur: ' + e.message + '</p><button id="cloudBackBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-top:20px;">← Retour</button></div>';
+    document.getElementById('cloudBackBtn').addEventListener('click', function() {
+      fetchCloudContent(currentSpaceId);
+    });
+  });
+};
+
+function renderSingleFolder(folder, folderId) {
+  var contentDiv = document.getElementById('main-content');
+  if (!contentDiv) return;
+  
+  var html = '<div style="margin-bottom:20px;">';
+  html += '<button id="folderBackBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour</button>';
+  html += '</div>';
+  html += '<div style="background:#1C1C2E;border-radius:16px;padding:16px;margin-bottom:16px;">';
+  html += '<h3 style="color:#5E5EFF;">📁 ' + folder.libelle + '</h3>';
+  html += '</div>';
+  
+  function renderChildren(items, level) {
+    var result = '';
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      var marginLeft = level * 20;
+      var isFolder = item.type === 'folder';
+      var icon = isFolder ? '📁' : '📄';
+      
+      result += '<div style="margin-left:' + marginLeft + 'px;padding:8px 12px;border-bottom:1px solid #2C2C44;display:flex;align-items:center;justify-content:space-between;' + (isFolder ? 'cursor:pointer;' : '') + '"';
+      
+      if (isFolder) {
+        result += ' onclick="window.navigateToFolder(\'' + encodeURIComponent(item.id) + '\')"';
+      }
+      
+      result += '>';
+      result += '<div style="display:flex;align-items:center;gap:8px;">';
+      result += '<span style="font-size:18px;">' + icon + '</span>';
+      result += '<span style="color:#E0E0E0;">' + item.libelle + '</span>';
+      result += '</div>';
+      
+      if (!isFolder) {
+        result += '<span style="color:#8E8E93;font-size:11px;">' + formatFileSize(item.taille) + '</span>';
+      } else {
+        result += '<span style="color:#5E5EFF;font-size:11px;">Dossier</span>';
+      }
+      
+      result += '</div>';
+      
+      if (isFolder && item.children && item.children.length > 0) {
+        result += renderChildren(item.children, level + 1);
+      }
+    }
+    return result;
+  }
+  
+  if (folder.children && folder.children.length > 0) {
+    html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
+    html += renderChildren(folder.children, 0);
+    html += '</div>';
+  } else {
+    html += '<div class="empty-state"><p>Dossier vide</p></div>';
+  }
+  
+  contentDiv.innerHTML = html;
+  
+  document.getElementById('folderBackBtn').addEventListener('click', function() {
+    fetchCloudContent(currentSpaceId);
+  });
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' o';
+  if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' Ko';
+  return (bytes / 1048576).toFixed(1) + ' Mo';
+}
     
     var newDoc = document.createElement('html');
     var head = document.createElement('head');
