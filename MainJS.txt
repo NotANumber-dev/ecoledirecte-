@@ -1,0 +1,504 @@
+(async () => {
+  try {
+    var credentials = JSON.parse(sessionStorage.getItem("credentials"));
+    var token = credentials.payload.authToken;
+    var accounts = JSON.parse(sessionStorage.getItem("accounts"));
+    var id = accounts.payload.accounts[0].id;
+
+    var resNotes = await fetch(`https://api.ecoledirecte.com/v3/eleves/${id}/notes.awp?verbe=get&v=6.17.0`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Token": token
+      },
+      body: "data=" + encodeURIComponent(JSON.stringify({ anneeScolaire: "" }))
+    });
+
+    var jsonNotes = await resNotes.json();
+    var data = jsonNotes.data;
+
+    var resDevoirs = await fetch(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte.awp?verbe=get&v=4.98.0`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Token": token
+      },
+      body: "data=" + encodeURIComponent(JSON.stringify({}))
+    });
+
+    var jsonDevoirs = await resDevoirs.json();
+    var cahierData = jsonDevoirs.data || {};
+
+    var trimesters = {
+      "A001": { name: "1er Trimestre", subjects: {} },
+      "A002": { name: "2eme Trimestre", subjects: {} },
+      "A003": { name: "3eme Trimestre", subjects: {} }
+    };
+
+    if (data.notes && Array.isArray(data.notes)) {
+      for (var i = 0; i < data.notes.length; i++) {
+        var note = data.notes[i];
+        var valeur = note.valeur;
+        var codePeriode = note.codePeriode;
+
+        if (valeur && valeur !== "" && valeur !== "NE" && valeur !== "Abs" && trimesters[codePeriode]) {
+          var numericValue = parseFloat(valeur.replace(',', '.'));
+
+          if (!isNaN(numericValue)) {
+            var noteSur = parseFloat(note.noteSur) || 20;
+            var valueOn20 = (numericValue / noteSur) * 20;
+            var subject = note.libelleMatiere;
+            var coefficient = parseFloat(note.coef) || 1;
+
+            if (!trimesters[codePeriode].subjects[subject]) {
+              trimesters[codePeriode].subjects[subject] = { sum: 0, coefSum: 0, count: 0 };
+            }
+            trimesters[codePeriode].subjects[subject].sum += valueOn20 * coefficient;
+            trimesters[codePeriode].subjects[subject].coefSum += coefficient;
+            trimesters[codePeriode].subjects[subject].count++;
+          }
+        }
+      }
+    }
+
+    for (var tri in trimesters) {
+      var subjects = trimesters[tri].subjects;
+      for (var subject in subjects) {
+        var subj = subjects[subject];
+        subj.average = subj.sum / subj.coefSum;
+      }
+    }
+
+    var existingWidget = document.getElementById('ed-widget');
+    if (existingWidget) existingWidget.remove();
+
+    var widget = document.createElement('div');
+    widget.id = 'ed-widget';
+    widget.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0B0B1A;z-index:999999;overflow:auto;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+
+    var currentTab = "moyennes";
+    var currentTrimester = "A001";
+    var dayDetailsCache = {};
+    var previousView = null;
+
+    function getGradeColor(avg) {
+      if (avg >= 12) return '#5E5EFF';
+      if (avg >= 10) return '#FFB340';
+      return '#FF5E5E';
+    }
+
+    function formatDate(dateStr) {
+      var date = new Date(dateStr);
+      var days = ["DIMANCHE", "LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI"];
+      var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
+      var dayName = days[date.getDay()];
+      var dayNum = date.getDate();
+      var month = months[date.getMonth()];
+      return { dayName: dayName, date: dayNum + " " + month, fullDate: dateStr };
+    }
+
+    function decodeBase64IfNeeded(str) {
+      if (!str) return "";
+      var base64Regex = /^[A-Za-z0-9+\/=]+$/;
+      if (base64Regex.test(str) && str.length % 4 === 0) {
+        try {
+          var binaryStr = atob(str);
+          var bytes = new Uint8Array(binaryStr.length);
+          for (var i = 0; i < binaryStr.length; i++) {
+            bytes[i] = binaryStr.charCodeAt(i);
+          }
+          var decoded = new TextDecoder("utf-8").decode(bytes);
+          if (decoded && decoded.length > 0) {
+            return decodeHtmlEntities(decoded);
+          }
+        } catch(e) {}
+      }
+      return decodeHtmlEntities(str);
+    }
+
+    function decodeHtmlEntities(text) {
+      if (!text) return "";
+      var txt = document.createElement('textarea');
+      txt.innerHTML = text;
+      var decoded = txt.value;
+      decoded = decoded.replace(/&nbsp;/g, ' ');
+      decoded = decoded.replace(/<[^>]*>/g, '');
+      decoded = decoded.replace(/\s+/g, ' ').trim();
+      return decoded;
+    }
+
+    function goBack() {
+      if (previousView === 'devoirs') {
+        renderDevoirs();
+      } else if (previousView === 'moyennes') {
+        renderMoyennes();
+      } else {
+        renderDevoirs();
+      }
+    }
+
+    async function showDayDetails(dateKey) {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+
+      previousView = currentTab;
+
+      if (dayDetailsCache[dateKey]) {
+        renderDayDetailsView(dateKey, dayDetailsCache[dateKey]);
+        return;
+      }
+
+      contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
+
+      try {
+        var res = await fetch(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte/${dateKey}.awp?verbe=get&v=4.98.0`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-Token": token
+          },
+          body: "data=" + encodeURIComponent(JSON.stringify({}))
+        });
+
+        var json = await res.json();
+        var matieres = json.data.matieres || [];
+        var tasks = [];
+
+        for (var i = 0; i < matieres.length; i++) {
+          if (matieres[i].aFaire) {
+            var task = matieres[i].aFaire;
+            task.matiere = matieres[i].matiere;
+            task.codeMatiere = matieres[i].codeMatiere;
+            task.interrogation = matieres[i].interrogation || false;
+            tasks.push(task);
+          }
+        }
+
+        dayDetailsCache[dateKey] = tasks;
+        renderDayDetailsView(dateKey, tasks);
+
+      } catch(e) {
+        contentDiv.innerHTML = '<div class="empty-state"><p>Erreur: ' + e.message + '</p><button style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-top:20px;" onclick="window.goBack()">← Retour</button></div>';
+      }
+    }
+
+    function renderDayDetailsView(dateKey, tasks) {
+      var formatted = formatDate(dateKey);
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+
+      var html = '<div style="margin-bottom:20px;">';
+      html += '<button style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;" onclick="window.goBack()">← Retour</button>';
+      html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
+      html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + formatted.dayName + '</h2>';
+      html += '<p style="color:#8E8E93;margin-bottom:24px;">' + formatted.date + '</p>';
+      html += '</div>';
+
+      for (var i = 0; i < tasks.length; i++) {
+        var task = tasks[i];
+        var isDone = (task.effectue === true);
+        var taskType = task.interrogation ? "Interrogation" : "Devoir";
+        var hasDocs = (task.documents && task.documents.length > 0);
+        var cleanContent = decodeBase64IfNeeded(task.contenu || "");
+
+        html += '<div style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid ' + (isDone ? '#5E5EFF' : '#FFB340') + ';">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;">';
+        html += '<div><span style="font-weight:700;color:white;font-size:18px;">' + task.matiere + '</span> <span style="color:#8E8E93;font-size:13px;margin-left:8px;">' + taskType + '</span></div>';
+        html += '<div><span style="color:' + (isDone ? '#5E5EFF' : '#FFB340') + ';font-size:13px;font-weight:500;">' + (isDone ? 'FAIT' : 'A FAIRE') + '</span></div>';
+        html += '</div>';
+
+        if (cleanContent) {
+          html += '<div style="color:#E0E0E0;font-size:14px;line-height:1.5;margin-bottom:12px;background:#0B0B1A;padding:12px;border-radius:12px;">' + cleanContent + '</div>';
+        }
+
+        if (task.donneLe) {
+          var givenDate = new Date(task.donneLe);
+          html += '<div style="color:#8E8E93;font-size:12px;margin-bottom:8px;">Donne le: ' + givenDate.toLocaleDateString('fr-FR') + '</div>';
+        }
+
+        if (hasDocs) {
+          html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2C2C44;">';
+          html += '<span style="color:#8E8E93;font-size:12px;">Pieces jointes:</span>';
+          for (var d = 0; d < task.documents.length; d++) {
+            html += '<div style="color:#5E5EFF;font-size:13px;margin-top:6px;margin-left:12px;">📄 ' + task.documents[d].libelle + '</div>';
+          }
+          html += '</div>';
+        }
+
+        html += '</div>';
+      }
+
+      html += '</div>';
+      contentDiv.innerHTML = html;
+    }
+
+    function renderMoyennes() {
+      var triData = trimesters[currentTrimester];
+      var subjectsList = [];
+      var totalWeighted = 0;
+      var totalCoef = 0;
+      var totalGrades = 0;
+
+      for (var subject in triData.subjects) {
+        var subj = triData.subjects[subject];
+        subjectsList.push({
+          name: subject,
+          average: subj.average,
+          count: subj.count,
+          coefSum: subj.coefSum
+        });
+        totalWeighted += subj.sum;
+        totalCoef += subj.coefSum;
+        totalGrades += subj.count;
+      }
+
+      subjectsList.sort(function(a, b) { return b.average - a.average; });
+      var trimesterAverage = totalCoef > 0 ? (totalWeighted / totalCoef) : null;
+
+      var allTotalWeighted = 0;
+      var allTotalCoef = 0;
+      var allTotalGrades = 0;
+      for (var tri in trimesters) {
+        for (var sub in trimesters[tri].subjects) {
+          var s = trimesters[tri].subjects[sub];
+          allTotalWeighted += s.sum;
+          allTotalCoef += s.coefSum;
+          allTotalGrades += s.count;
+        }
+      }
+      var annualAverage = allTotalCoef > 0 ? (allTotalWeighted / allTotalCoef) : null;
+
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+
+      var html = '';
+
+      if (subjectsList.length === 0) {
+        html += '<div class="empty-state"><p>Aucune note pour ce trimestre</p></div>';
+      } else {
+        html += '<div class="stats-grid">';
+        html += '<div class="stat-card"><div class="stat-label">MOYENNE GENERALE</div><div class="stat-value">' + trimesterAverage.toFixed(2) + '</div><div class="stat-sub">Coefficientee</div></div>';
+        html += '<div class="stat-card"><div class="stat-label">NOMBRE DE NOTES</div><div class="stat-value">' + totalGrades + '</div><div class="stat-sub">Ce trimestre</div></div>';
+        html += '</div>';
+
+        html += '<div class="subjects-grid">';
+        for (var i = 0; i < subjectsList.length; i++) {
+          var sub = subjectsList[i];
+          var gradeColor = getGradeColor(sub.average);
+          html += '<div class="subject-card">';
+          html += '<div class="subject-header">';
+          html += '<span class="subject-name">' + sub.name + '</span>';
+          html += '<span class="subject-average" style="color:' + gradeColor + ';">' + sub.average.toFixed(2) + '</span>';
+          html += '</div>';
+          html += '<div class="subject-stats">';
+          html += '<span><span class="grade-indicator" style="background:' + gradeColor + ';"></span>' + sub.count + ' note(s)</span>';
+          html += '<span>Coeff. ' + sub.coefSum.toFixed(1) + '</span>';
+          html += '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      if (annualAverage !== null) {
+        html += '<div class="annual-card">';
+        html += '<div class="annual-label">MOYENNE ANNUELLE PONDEREE</div>';
+        html += '<div class="annual-value">' + annualAverage.toFixed(2) + '</div>';
+        html += '<div class="annual-note-count">' + allTotalGrades + ' notes sur toute l annee</div>';
+        html += '</div>';
+      }
+
+      contentDiv.innerHTML = html;
+    }
+
+    function renderDevoirs() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+
+      var dates = Object.keys(cahierData).sort();
+      var hasTasks = false;
+      var html = '<div class="devoirs-container">';
+
+      for (var d = 0; d < dates.length; d++) {
+        var dateKey = dates[d];
+        var devoirs = cahierData[dateKey];
+        var formatted = formatDate(dateKey);
+
+        var notDoneTasks = [];
+        var doneTasks = [];
+
+        for (var i = 0; i < devoirs.length; i++) {
+          if (devoirs[i].effectue === false) {
+            notDoneTasks.push(devoirs[i]);
+          } else {
+            doneTasks.push(devoirs[i]);
+          }
+        }
+
+        var allTasks = notDoneTasks.concat(doneTasks);
+        if (allTasks.length > 0) {
+          hasTasks = true;
+
+          html += '<div style="margin-bottom:20px;">';
+          html += '<div class="date-pill" data-date="' + dateKey + '" style="background:#1C1C2E;border-radius:20px;padding:14px 20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">';
+          html += '<div><span style="font-weight:700;color:#5E5EFF;font-size:18px;">' + formatted.dayName + '</span><span style="color:#8E8E93;margin-left:12px;font-size:14px;">' + formatted.date + '</span></div>';
+          html += '<div style="background:#2C2C44;padding:4px 10px;border-radius:20px;font-size:12px;color:#8E8E93;">' + allTasks.length + ' devoir(s)</div>';
+          html += '</div>';
+
+          html += '<div class="tasks-list" data-date="' + dateKey + '" style="margin-left:12px;margin-bottom:12px;">';
+          for (var i = 0; i < allTasks.length; i++) {
+            var task = allTasks[i];
+            var isDone = (task.effectue === true);
+            var taskType = task.interrogation ? "Interrogation" : "Devoir";
+            var hasDocs = (task.documentsAFaire === true);
+
+            html += '<div style="background:#1C1C2E;border-radius:16px;padding:16px;margin-bottom:10px;border-left:3px solid ' + (isDone ? '#5E5EFF' : '#FFB340') + ';">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+            html += '<div><span style="font-weight:700;color:white;font-size:16px;">' + task.matiere + '</span> <span style="color:#8E8E93;font-size:12px;margin-left:8px;">' + taskType + '</span></div>';
+            html += '<div><span style="color:' + (isDone ? '#5E5EFF' : '#FFB340') + ';font-size:13px;font-weight:500;">' + (isDone ? 'FAIT' : 'A FAIRE') + '</span></div>';
+            html += '</div>';
+
+            if (hasDocs) {
+              html += '<div style="color:#5E5EFF;font-size:12px;margin-top:6px;">Piece jointe</div>';
+            }
+
+            html += '</div>';
+          }
+          html += '</div>';
+          html += '</div>';
+        }
+      }
+
+      if (!hasTasks) {
+        html += '<div class="empty-state"><p>Aucun devoir a venir</p></div>';
+      }
+
+      html += '</div>';
+      contentDiv.innerHTML = html;
+
+      var datePills = document.querySelectorAll('#ed-content .date-pill');
+      for (var i = 0; i < datePills.length; i++) {
+        datePills[i].addEventListener('click', function(e) {
+          e.stopPropagation();
+          var dateKey = this.getAttribute('data-date');
+          showDayDetails(dateKey);
+        });
+      }
+    }
+
+    function renderContent() {
+      if (currentTab === "moyennes") {
+        renderMoyennes();
+      } else {
+        renderDevoirs();
+      }
+    }
+
+    widget.innerHTML = `
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        #ed-widget { background-color: #0B0B1A; color: #FFFFFF; }
+        .m-container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        .tab-bar { display: flex; gap: 12px; margin-bottom: 24px; background: #1C1C2E; padding: 8px; border-radius: 16px; }
+        .tab-btn { flex: 1; padding: 14px; text-align: center; font-size: 16px; font-weight: 600; color: #8E8E93; background: transparent; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; }
+        .tab-btn.active { background: #2C2C44; color: #5E5EFF; box-shadow: 0 2px 8px rgba(94, 94, 255, 0.2); }
+        .selector-container { margin-bottom: 32px; }
+        .trimester-selector { background: #1C1C2E; border-radius: 16px; padding: 8px; display: flex; gap: 8px; }
+        .trimester-option { flex: 1; padding: 16px; text-align: center; font-size: 17px; font-weight: 600; color: #8E8E93; background: transparent; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; }
+        .trimester-option.active { background: #2C2C44; color: #5E5EFF; box-shadow: 0 2px 8px rgba(94, 94, 255, 0.2); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: #1C1C2E; border-radius: 20px; padding: 20px; text-align: center; }
+        .stat-label { font-size: 14px; color: #8E8E93; margin-bottom: 8px; }
+        .stat-value { font-size: 44px; font-weight: 700; color: #5E5EFF; }
+        .stat-sub { font-size: 12px; color: #8E8E93; margin-top: 8px; }
+        .subjects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .subject-card { background: #1C1C2E; border-radius: 20px; padding: 20px; transition: transform 0.2s ease; cursor: pointer; }
+        .subject-card:hover { transform: scale(1.02); }
+        .subject-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #2C2C44; }
+        .subject-name { font-size: 17px; font-weight: 600; color: #FFFFFF; }
+        .subject-average { font-size: 28px; font-weight: 700; }
+        .subject-stats { display: flex; justify-content: space-between; color: #8E8E93; font-size: 13px; }
+        .grade-indicator { width: 8px; height: 8px; border-radius: 4px; display: inline-block; margin-right: 6px; }
+        .annual-card { background: linear-gradient(135deg, #2C2C44 0%, #1C1C2E 100%); border-radius: 24px; padding: 28px; text-align: center; border: 1px solid rgba(94, 94, 255, 0.3); }
+        .annual-label { font-size: 15px; color: #8E8E93; margin-bottom: 12px; letter-spacing: 0.5px; }
+        .annual-value { font-size: 56px; font-weight: 800; background: linear-gradient(135deg, #FFFFFF 0%, #5E5EFF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .annual-note-count { font-size: 13px; color: #8E8E93; margin-top: 12px; }
+        .empty-state { text-align: center; padding: 60px 20px; background: #1C1C2E; border-radius: 24px; }
+        .empty-state p { color: #8E8E93; font-size: 17px; }
+        .date-pill:hover { background: #2C2C44 !important; }
+        @media (max-width: 768px) { .m-container { padding: 16px; } .subjects-grid { grid-template-columns: 1fr; } .stat-value { font-size: 36px; } .annual-value { font-size: 44px; } }
+      </style>
+      <div class="m-container">
+        <div class="tab-bar">
+          <button class="tab-btn" data-tab="moyennes">Moyennes</button>
+          <button class="tab-btn" data-tab="devoirs">Devoirs</button>
+        </div>
+        <div id="ed-content"></div>
+      </div>
+    `;
+
+    document.body.appendChild(widget);
+
+    window.goBack = goBack;
+
+    var tabBtns = document.querySelectorAll('#ed-widget .tab-btn');
+    for (var i = 0; i < tabBtns.length; i++) {
+      tabBtns[i].addEventListener('click', function(e) {
+        var tab = this.getAttribute('data-tab');
+        currentTab = tab;
+        for (var j = 0; j < tabBtns.length; j++) {
+          tabBtns[j].classList.remove('active');
+        }
+        this.classList.add('active');
+
+        var trimesterSelector = document.querySelector('#ed-widget .selector-container');
+        if (tab === "moyennes") {
+          if (trimesterSelector) trimesterSelector.style.display = 'block';
+          renderMoyennes();
+        } else {
+          if (trimesterSelector) trimesterSelector.style.display = 'none';
+          renderDevoirs();
+        }
+      });
+    }
+
+    var activeTab = document.querySelector('#ed-widget .tab-btn[data-tab="moyennes"]');
+    if (activeTab) activeTab.classList.add('active');
+
+    var trimesterSelectorHtml = document.createElement('div');
+    trimesterSelectorHtml.className = 'selector-container';
+    trimesterSelectorHtml.innerHTML = `
+      <div class="trimester-selector">
+        <button class="trimester-option" data-tri="A001">1er Trimestre</button>
+        <button class="trimester-option" data-tri="A002">2eme Trimestre</button>
+        <button class="trimester-option" data-tri="A003">3eme Trimestre</button>
+      </div>
+    `;
+
+    var contentDiv = document.getElementById('ed-content');
+    var parentDiv = contentDiv.parentNode;
+    parentDiv.insertBefore(trimesterSelectorHtml, contentDiv);
+
+    renderMoyennes();
+
+    var triButtons = document.querySelectorAll('#ed-widget .trimester-option');
+    for (var i = 0; i < triButtons.length; i++) {
+      triButtons[i].addEventListener('click', function(e) {
+        var tri = this.getAttribute('data-tri');
+        currentTrimester = tri;
+        for (var j = 0; j < triButtons.length; j++) {
+          triButtons[j].classList.remove('active');
+        }
+        this.classList.add('active');
+        renderMoyennes();
+      });
+    }
+
+    var activeTri = document.querySelector('#ed-widget .trimester-option[data-tri="A001"]');
+    if (activeTri) activeTri.classList.add('active');
+
+    completion("Charge");
+
+  } catch (error) {
+    completion("Erreur: " + error.message);
+  }
+})();
