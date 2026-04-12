@@ -1,5 +1,5 @@
 <div align="center">
-<img src="icon.png" height="100px"/>
+<img src="icon/icon.png" height="100px"/>
 <h1 align="center">EcoleDirecte -</h1>
 </div>
 
