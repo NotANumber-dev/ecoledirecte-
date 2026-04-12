@@ -1,0 +1,23 @@
+(async () => {
+  try {
+    var credentials = JSON.parse(sessionStorage.getItem("credentials"));
+    var token = credentials.payload.authToken;
+    var accounts = JSON.parse(sessionStorage.getItem("accounts"));
+    var id = accounts.payload.accounts[0].id;
+
+    var res = await fetch(`https://api.ecoledirecte.com/v3/eleves/${id}/viescolaire.awp?verbe=get&v=4.98.0`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Token": token
+      },
+      body: "data=" + encodeURIComponent(JSON.stringify({}))
+    });
+
+    var json = await res.json();
+    completion(JSON.stringify(json, null, 2));
+    
+  } catch (error) {
+    completion("Erreur: " + error.message);
+  }
+})();
