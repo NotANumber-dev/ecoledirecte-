@@ -11,6 +11,12 @@
 - Carnet de correspondance
 - Vie scolaire (absences, retards, colle ...)
 
+## Utilisation
+Executer le raccourci dans la feuille de partage du site ecoledirecte dans safari.
+### Raccourcis
+Prod: 
+<br>
+Debug:
 ## Changelog
 ### V1.2 (current)
  - Carnet de correspondance
