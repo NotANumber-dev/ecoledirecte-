@@ -28,3 +28,6 @@ Debug: https://www.icloud.com/shortcuts/64c50d88d96e42c5af2514e2fc0014f4 (raw gi
 ### V1.0
  - moyennes générale par matière/trimestre/année (calcule avec les coefitients, comparé a l'application mobile parent)
  - devoirs (les caractères speciaux comme é è ´ sonts affichées corectement. & ne s'affiche pas correctement)
+
+## License
+Apache 2.0
