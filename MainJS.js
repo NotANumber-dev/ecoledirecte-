@@ -269,8 +269,12 @@ document.body.style.backgroundColor = '#000000';
       }
     }
 
-    function decodeContent(str) {
-      if (!str) return "";
+ function decodeContent(str) {
+  if (!str) return "";
+  
+  try {
+    // First check if it's base64 (contains only base64 chars)
+    if (/^[A-Za-z0-9+\/=]+$/.test(str) && str.length % 4 === 0) {
       try {
         var base64Decoded = atob(str);
         var bytes = [];
@@ -278,16 +282,90 @@ document.body.style.backgroundColor = '#000000';
           bytes.push(base64Decoded.charCodeAt(i) & 0xFF);
         }
         var decoder = new TextDecoder('utf-8');
-        var decoded = decoder.decode(new Uint8Array(bytes));
-        var txt = document.createElement('textarea');
-        txt.innerHTML = decoded;
-        decoded = txt.value;
-        decoded = decoded.replace(/\s+/g, ' ').trim();
-        return decoded;
-      } catch(e) {
-        return decodeUtf8(str);
+        return decoder.decode(new Uint8Array(bytes));
+      } catch(e) {}
+    }
+    
+    // Fix corrupted UTF-8 characters (Ã© → é, etc.)
+    var fixed = str;
+    var fixes = {
+      'Ã©': 'é',
+      'Ã¨': 'è',
+      'Ãª': 'ê',
+      'Ã«': 'ë',
+      'Ã¤': 'ä',
+      'Ã¢': 'â',
+      'Ã®': 'î',
+      'Ã¯': 'ï',
+      'Ã¶': 'ö',
+      'Ã¹': 'ù',
+      'Ã»': 'û',
+      'Ã¼': 'ü',
+      'Ã§': 'ç',
+      'Ã˜': 'Ø',
+      'Ã¦': 'æ',
+      'Ã¥': 'å',
+      'Ã£': 'ã',
+      'Ã±': 'ñ',
+      'Ã ': 'à',
+      'Ã¡': 'á',
+      'Ã¢': 'â',
+      'Ã£': 'ã',
+      'â‚¬': '€',
+      'â€™': "'",
+      'â€œ': '"',
+      'â€': '"',
+      'â€¢': '•',
+      'â€“': '-',
+      'â€”': '-',
+      'â€š': ',',
+      'â€ž': '"',
+      'â€¹': '<',
+      'â€º': '>',
+      'â€˜': "'",
+      'â€': '"',
+      'â€¢': '•',
+      'Â°': '°',
+      'Â±': '±',
+      'Â²': '²',
+      'Â³': '³',
+      'Âµ': 'µ',
+      'Â·': '·',
+      'Â¹': '¹',
+      'Âº': 'º',
+      'Â¼': '¼',
+      'Â½': '½',
+      'Â¾': '¾',
+      'Â€': '€',
+      'Â£': '£',
+      'Â¥': '¥',
+      'Â§': '§',
+      'Â©': '©',
+      'Â®': '®',
+      'Â™': '™',
+      'd': "d'",
+      'l': "l'",
+      'n': "n'",
+      's': "s'",
+      'm': "m'",
+      't': "t'",
+      'c': "c'",
+      'j': "j'",
+      'qu': "qu'",
+      '': "'"
+    };
+    
+    for (var wrong in fixes) {
+      while (fixed.indexOf(wrong) !== -1) {
+        fixed = fixed.split(wrong).join(fixes[wrong]);
       }
     }
+    
+    return fixed;
+  } catch(e) {
+    return str;
+  }
+}
 
     function goBack() {
       if (previousView === 'devoirs') {
