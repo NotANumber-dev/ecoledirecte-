@@ -1,10 +1,10 @@
 <div align="center">
 <img src="icon/icon.png" height="100px"/>
 <h1 align="center">EcoleDirecte -</h1>
-<h3 align="center">EcoleDirecte 500x mieux | Raccourci iPhone/iPad/iMac/Mac/MacMini
+<p align="center">EcoleDirecte 500x mieux | Raccourci iPhone/iPad/iMac/Mac/MacMini</p>
 </div>
 
-## INFO
+## Info
  Ne fonctione UNIQUEMENT sur un compte ecoledirecte éleve
 ## Fonctionnalités
 
