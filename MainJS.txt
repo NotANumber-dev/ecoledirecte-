@@ -6,8 +6,8 @@
 
 (async () => {
   try {
-document.documentElement.innerHTML = '';
-document.body.style.backgroundColor = '#000000';
+    document.documentElement.innerHTML = '';
+    document.body.style.backgroundColor = '#000000';
     var credentials = JSON.parse(sessionStorage.getItem("credentials"));
     var token = credentials.payload.authToken;
     var accounts = JSON.parse(sessionStorage.getItem("accounts"));
@@ -15,6 +15,7 @@ document.body.style.backgroundColor = '#000000';
 
     var apiLogs = [];
     var debugEnabled = false;
+    var isUpdating = false;
 
     function logApiCall(url, responseCode, duration) {
       if (!debugEnabled) return;
@@ -120,7 +121,8 @@ document.body.style.backgroundColor = '#000000';
     }).catch(function() {
       return { data: { absencesRetards: [], sanctionsEncouragements: [] } };
     });
-var messagesPromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/messages.awp?verbe=get&v=4.98.0`, {
+
+    var messagesPromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/messages.awp?verbe=get&v=4.98.0`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -133,7 +135,7 @@ var messagesPromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/$
       return { data: { messages: { received: [], sent: [], draft: [], archived: [] } } };
     });
 
-var timelinePromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/timeline.awp?verbe=get&v=4.98.0`, {
+    var timelinePromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/timeline.awp?verbe=get&v=4.98.0`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -146,7 +148,7 @@ var timelinePromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/$
       return { data: [] };
     });
 
-var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, carnetPromise, vieScolairePromise, messagesPromise, timelinePromise]);
+    var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, carnetPromise, vieScolairePromise, messagesPromise, timelinePromise]);
     var notesJson = results[0];
     var devoirsJson = results[1];
     var espaceJson = results[2];
@@ -184,16 +186,13 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
       notesToProcess.forEach(function(note) {
         var valeur = note.valeur;
         var codePeriode = note.codePeriode;
-
         if (valeur && valeur !== "" && valeur !== "NE" && valeur !== "Abs" && trimesters[codePeriode]) {
           var numericValue = parseFloat(valeur.replace(',', '.'));
-
           if (!isNaN(numericValue)) {
             var noteSur = parseFloat(note.noteSur) || 20;
             var valueOn20 = (numericValue / noteSur) * 20;
             var subject = note.libelleMatiere;
             var coefficient = parseFloat(note.coef) || 1;
-
             if (!trimesters[codePeriode].subjects[subject]) {
               trimesters[codePeriode].subjects[subject] = { sum: 0, coefSum: 0, count: 0 };
             }
@@ -244,7 +243,6 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
 
     function getEncouragementMessage(average) {
       if (average === null || isNaN(average)) return "Pret a commencer l'annee !";
-
       var messages = [];
       if (average >= 0 && average < 5) messages = ["Chaque debut compte, commence petit !", "Un pas a la fois, tu vas y arriver !", "C'est le moment de s'y mettre !"];
       else if (average >= 5 && average < 8) messages = ["Allez on s'y met, travaille dur !", "Le succes vient a ceux qui persistent !", "Chaque effort compte, continue !"];
@@ -256,7 +254,6 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
       else if (average >= 17 && average < 18.5) messages = ["Waouh, tu es incroyable !", "Tu es un champion !", "Bravo, tu es au top !"];
       else if (average >= 18.5 && average < 20) messages = ["Va t'amuser, tu es le meilleur !", "Tu es une legende !", "Felicitations, tu es exceptionnel !"];
       else if (average === 20) messages = ["Parfait ! Tu es le maitre !", "20/20, tu es invincible !"];
-
       if (messages.length > 0) return messages[Math.floor(Math.random() * messages.length)];
       return "Continue tes efforts !";
     }
@@ -306,103 +303,100 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
       }
     }
 
- function decodeContent(str) {
-  if (!str) return "";
-  
-  try {
-    // First check if it's base64 (contains only base64 chars)
-    if (/^[A-Za-z0-9+\/=]+$/.test(str) && str.length % 4 === 0) {
+    function decodeContent(str) {
+      if (!str) return "";
       try {
-        var base64Decoded = atob(str);
-        var bytes = [];
-        for (var i = 0; i < base64Decoded.length; i++) {
-          bytes.push(base64Decoded.charCodeAt(i) & 0xFF);
+        if (/^[A-Za-z0-9+\/=]+$/.test(str) && str.length % 4 === 0) {
+          try {
+            var base64Decoded = atob(str);
+            var bytes = [];
+            for (var i = 0; i < base64Decoded.length; i++) {
+              bytes.push(base64Decoded.charCodeAt(i) & 0xFF);
+            }
+            var decoder = new TextDecoder('utf-8');
+            return decoder.decode(new Uint8Array(bytes));
+          } catch(e) {}
         }
-        var decoder = new TextDecoder('utf-8');
-        return decoder.decode(new Uint8Array(bytes));
-      } catch(e) {}
-    }
-    
-    // Fix corrupted UTF-8 characters (Ã© → é, etc.)
-    var fixed = str;
-    var fixes = {
-      'Ã©': 'é',
-      'Ã¨': 'è',
-      'Ãª': 'ê',
-      'Ã«': 'ë',
-      'Ã¤': 'ä',
-      'Ã¢': 'â',
-      'Ã®': 'î',
-      'Ã¯': 'ï',
-      'Ã¶': 'ö',
-      'Ã¹': 'ù',
-      'Ã»': 'û',
-      'Ã¼': 'ü',
-      'Ã§': 'ç',
-      'Ã˜': 'Ø',
-      'Ã¦': 'æ',
-      'Ã¥': 'å',
-      'Ã£': 'ã',
-      'Ã±': 'ñ',
-      'Ã ': 'à',
-      'Ã¡': 'á',
-      'Ã¢': 'â',
-      'Ã£': 'ã',
-      'â‚¬': '€',
-      'â€™': "'",
-      'â€œ': '"',
-      'â€': '"',
-      'â€¢': '•',
-      'â€“': '-',
-      'â€”': '-',
-      'â€š': ',',
-      'â€ž': '"',
-      'â€¹': '<',
-      'â€º': '>',
-      'â€˜': "'",
-      'â€': '"',
-      'â€¢': '•',
-      'Â°': '°',
-      'Â±': '±',
-      'Â²': '²',
-      'Â³': '³',
-      'Âµ': 'µ',
-      'Â·': '·',
-      'Â¹': '¹',
-      'Âº': 'º',
-      'Â¼': '¼',
-      'Â½': '½',
-      'Â¾': '¾',
-      'Â€': '€',
-      'Â£': '£',
-      'Â¥': '¥',
-      'Â§': '§',
-      'Â©': '©',
-      'Â®': '®',
-      'Â™': '™',
-      'd': "d'",
-      'l': "l'",
-      'n': "n'",
-      's': "s'",
-      'm': "m'",
-      't': "t'",
-      'c': "c'",
-      'j': "j'",
-      'qu': "qu'",
-      '': "'"
-    };
-    
-    for (var wrong in fixes) {
-      while (fixed.indexOf(wrong) !== -1) {
-        fixed = fixed.split(wrong).join(fixes[wrong]);
+        var fixed = str;
+        var fixes = {
+          'Ã©': 'é', 'Ã¨': 'è', 'Ãª': 'ê', 'Ã«': 'ë', 'Ã¤': 'ä', 'Ã¢': 'â',
+          'Ã®': 'î', 'Ã¯': 'ï', 'Ã¶': 'ö', 'Ã¹': 'ù', 'Ã»': 'û', 'Ã¼': 'ü',
+          'Ã§': 'ç', 'Ã˜': 'Ø', 'Ã¦': 'æ', 'Ã¥': 'å', 'Ã£': 'ã', 'Ã±': 'ñ',
+          'Ã ': 'à', 'Ã¡': 'á', 'Ã¢': 'â', 'Ã£': 'ã', 'â‚¬': '€', 'â€™': "'",
+          'â€œ': '"', 'â€': '"', 'â€¢': '•', 'â€“': '-', 'â€”': '-', 'â€š': ',',
+          'â€ž': '"', 'â€¹': '<', 'â€º': '>', 'â€˜': "'", 'Â°': '°', 'Â±': '±',
+          'Â²': '²', 'Â³': '³', 'Âµ': 'µ', 'Â·': '·', 'Â¹': '¹', 'Âº': 'º',
+          'Â¼': '¼', 'Â½': '½', 'Â¾': '¾', 'Â€': '€', 'Â£': '£', 'Â¥': '¥',
+          'Â§': '§', 'Â©': '©', 'Â®': '®', 'Â™': '™', 'd': "d'", 'l': "l'",
+          'n': "n'", 's': "s'", 'm': "m'", 't': "t'", 'c': "c'", 'j': "j'",
+          'qu': "qu'", '': "'"
+        };
+        for (var wrong in fixes) {
+          while (fixed.indexOf(wrong) !== -1) {
+            fixed = fixed.split(wrong).join(fixes[wrong]);
+          }
+        }
+        return fixed;
+      } catch(e) {
+        return str;
       }
     }
-    
-    return fixed;
-  } catch(e) {
-    return str;
-  }
-}
+
+    window.markHomework = function(devoirId, isDone, btn) {
+      if (isUpdating) {
+        alert("Veuillez patienter...");
+        return;
+      }
+      isUpdating = true;
+      var originalText = btn.textContent;
+      var taskDiv = btn.closest('.task-block');
+      var statusSpan = taskDiv ? taskDiv.querySelector('.task-status') : null;
+      btn.textContent = "...";
+      btn.disabled = true;
+      var bodyObj;
+      if (isDone) {
+        bodyObj = { idDevoirsEffectues: [devoirId], idDevoirsNonEffectues: [] };
+      } else {
+        bodyObj = { idDevoirsEffectues: [], idDevoirsNonEffectues: [devoirId] };
+      }
+      var formData = new URLSearchParams();
+      formData.append("data", JSON.stringify(bodyObj));
+      fetch(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte.awp?verbe=put&v=4.98.0`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-Token": token
+        },
+        body: formData.toString()
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(json) {
+        isUpdating = false;
+        btn.textContent = originalText;
+        btn.disabled = false;
+        if (json.code === 200) {
+          if (statusSpan) {
+            if (isDone) {
+              statusSpan.textContent = "FAIT";
+              statusSpan.style.color = "#5E5EFF";
+              btn.textContent = "Non fait";
+            } else {
+              statusSpan.textContent = "A FAIRE";
+              statusSpan.style.color = "#FFB340";
+              btn.textContent = "Fait";
+            }
+          }
+        } else {
+          alert("Erreur: " + json.message);
+        }
+      })
+      .catch(function(err) {
+        isUpdating = false;
+        btn.textContent = originalText;
+        btn.disabled = false;
+        alert("Erreur: " + err.message);
+      });
+    };
 
     function goBack() {
       if (previousView === 'devoirs') {
@@ -417,16 +411,12 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
     async function showDayDetails(dateKey) {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
-
       previousView = currentTab;
-
       if (dayDetailsCache[dateKey]) {
         renderDayDetailsView(dateKey, dayDetailsCache[dateKey]);
         return;
       }
-
       contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
-
       try {
         var startTime = Date.now();
         var res = await fetch(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte/${dateKey}.awp?verbe=get&v=4.98.0`, {
@@ -439,11 +429,9 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
         });
         var duration = Date.now() - startTime;
         logApiCall(`Cahier texte ${dateKey}`, res.status, duration);
-
         var json = await res.json();
         var matieres = json.data.matieres || [];
         var tasks = [];
-
         for (var i = 0; i < matieres.length; i++) {
           if (matieres[i].aFaire) {
             var task = matieres[i].aFaire;
@@ -453,10 +441,8 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
             tasks.push(task);
           }
         }
-
         dayDetailsCache[dateKey] = tasks;
         renderDayDetailsView(dateKey, tasks);
-
       } catch(e) {
         contentDiv.innerHTML = '<div class="empty-state"><p>Erreur: ' + e.message + '</p><button style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-top:20px;" onclick="window.goBack()">← Retour</button></div>';
       }
@@ -466,14 +452,12 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
       var formatted = formatDate(dateKey);
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
-
       var html = '<div style="margin-bottom:20px;">';
       html += '<button style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;" onclick="window.goBack()">← Retour</button>';
       html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
       html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + formatted.dayName + '</h2>';
       html += '<p style="color:#8E8E93;margin-bottom:24px;">' + formatted.date + '</p>';
       html += '</div>';
-
       for (var i = 0; i < tasks.length; i++) {
         var task = tasks[i];
         var isDone = (task.effectue === true);
@@ -481,22 +465,20 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
         var hasDocs = (task.documents && task.documents.length > 0);
         var rawContent = typeof task.contenu === 'string' ? task.contenu : '';
         var cleanContent = decodeContent(rawContent);
-
-        html += '<div style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid ' + (isDone ? '#5E5EFF' : '#FFB340') + ';">';
+        var taskId = task.idDevoir || task.id;
+        html += '<div class="task-block" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid ' + (isDone ? '#5E5EFF' : '#FFB340') + ';">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;">';
         html += '<div><span style="font-weight:700;color:white;font-size:18px;">' + task.matiere + '</span> <span style="color:#8E8E93;font-size:13px;margin-left:8px;">' + taskType + '</span></div>';
-        html += '<div><span style="color:' + (isDone ? '#5E5EFF' : '#FFB340') + ';font-size:13px;font-weight:500;">' + (isDone ? 'FAIT' : 'A FAIRE') + '</span></div>';
-        html += '</div>';
-
+        html += '<div><span class="task-status" style="color:' + (isDone ? '#5E5EFF' : '#FFB340') + ';font-size:13px;font-weight:500;">' + (isDone ? 'FAIT' : 'A FAIRE') + '</span>';
+        html += '<button class="mark-homework-btn" data-id="' + taskId + '" data-done="' + isDone + '" style="background:#2C2C44;border:none;color:#5E5EFF;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;margin-left:12px;">' + (isDone ? 'Non fait' : 'Fait') + '</button>';
+        html += '</div></div>';
         if (cleanContent) {
           html += '<div style="color:#E0E0E0;font-size:14px;line-height:1.5;margin-bottom:12px;background:#0B0B1A;padding:12px;border-radius:12px;">' + cleanContent + '</div>';
         }
-
         if (task.donneLe) {
           var givenDate = new Date(task.donneLe);
           html += '<div style="color:#8E8E93;font-size:12px;margin-bottom:8px;">Donne le: ' + givenDate.toLocaleDateString('fr-FR') + '</div>';
         }
-
         if (hasDocs) {
           html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2C2C44;">';
           html += '<span style="color:#8E8E93;font-size:12px;">Pieces jointes:</span>';
@@ -505,29 +487,35 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
           }
           html += '</div>';
         }
-
         html += '</div>';
       }
-
       html += '</div>';
       contentDiv.innerHTML = html;
+      var btns = document.querySelectorAll('.mark-homework-btn');
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].addEventListener('click', function(e) {
+          e.stopPropagation();
+          var btn = this;
+          var taskId = parseInt(btn.getAttribute('data-id'));
+          var isCurrentlyDone = btn.getAttribute('data-done') === 'true';
+          window.markHomework(taskId, !isCurrentlyDone, btn);
+        });
+      }
     }
 
     function renderHome() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
       contentDiv.innerHTML = '';
-
       var currentTrim = trimesters[currentTrimester];
       var subjects = Object.keys(currentTrim.subjects).map(function(subject) {
         var subj = currentTrim.subjects[subject];
         return { name: subject, average: subj.average, count: subj.count };
       }).sort(function(a, b) { return b.average - a.average; }).slice(0, 4);
-       var previousAvg = null;
-       var avgDiff = null;
-       var diffColor = '#8E8E93';
-       var diffText = '';
-
+      var previousAvg = null;
+      var avgDiff = null;
+      var diffColor = '#8E8E93';
+      var diffText = '';
       var homeworkCount = 0;
       var dates = Object.keys(cahierData || {});
       for (var i = 0; i < dates.length; i++) {
@@ -536,7 +524,6 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
           if (tasks[j].effectue === false) homeworkCount++;
         }
       }
-
       var currentTrimAvg = null;
       var totalWeighted = 0;
       var totalCoef = 0;
@@ -548,7 +535,6 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
       if (totalCoef > 0) {
         currentTrimAvg = totalWeighted / totalCoef;
       }
-
       var html = '';
       html += '<div class="home-hero">';
       html += '<div class="hero-copy">';
@@ -564,13 +550,11 @@ var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, ca
       html += '<div class="hero-stats"><span>Moyenne générale</span><strong>' + (currentTrimAvg !== null ? currentTrimAvg.toFixed(2) : '—') + '</strong></div>';
       html += '<div style="display:flex;align-items:baseline;gap:8px;">';
       html += '<strong>' + (currentTrimAvg !== null ? currentTrimAvg.toFixed(2) : '—') + '</strong>';
-if (diffText) {
-  html += '<span style="font-size:14px;color:' + diffColor + ';">' + diffText + '</span>';
-}
+      if (diffText) {
+        html += '<span style="font-size:14px;color:' + diffColor + ';">' + diffText + '</span>';
+      }
       html += '</div>';
       html += '</div>';
-      
-
       html += '<div class="home-grid">';
       if (subjects.length > 0) {
         html += '<div class="home-card"><div class="card-title">Top matières</div>';
@@ -581,7 +565,6 @@ if (diffText) {
         html += '</div>';
       }
       html += '</div>';
-
       if (timelineData && timelineData.length > 0) {
         var timelineCount = getTimelineCount();
         var displayedTimeline = timelineData.slice(0, timelineCount);
@@ -604,7 +587,6 @@ if (diffText) {
         html += '</div>';
         html += '</div>';
       }
-
       contentDiv.innerHTML = html;
     }
 
@@ -612,13 +594,11 @@ if (diffText) {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
       contentDiv.innerHTML = '';
-
       var triData = trimesters[currentTrimester];
       var subjectsList = [];
       var totalWeighted = 0;
       var totalCoef = 0;
       var totalGrades = 0;
-
       for (var subject in triData.subjects) {
         var subj = triData.subjects[subject];
         subjectsList.push({
@@ -631,10 +611,8 @@ if (diffText) {
         totalCoef += subj.coefSum;
         totalGrades += subj.count;
       }
-
       subjectsList.sort(function(a, b) { return b.average - a.average; });
       var trimesterAverage = totalCoef > 0 ? (totalWeighted / totalCoef) : null;
-
       var allTotalWeighted = 0;
       var allTotalCoef = 0;
       var allTotalGrades = 0;
@@ -647,9 +625,7 @@ if (diffText) {
         }
       }
       var annualAverage = allTotalCoef > 0 ? (allTotalWeighted / allTotalCoef) : null;
-
       var html = '';
-
       if (subjectsList.length === 0) {
         html += '<div class="empty-state"><p>Aucune note pour ce trimestre</p></div>';
       } else {
@@ -657,7 +633,6 @@ if (diffText) {
         html += '<div class="stat-card"><div class="stat-label">MOYENNE GENERALE</div><div class="stat-value">' + trimesterAverage.toFixed(2) + '</div><div class="stat-sub">Coefficientee</div></div>';
         html += '<div class="stat-card"><div class="stat-label">NOMBRE DE NOTES</div><div class="stat-value">' + totalGrades + '</div><div class="stat-sub">Ce trimestre</div></div>';
         html += '</div>';
-
         html += '<div class="subjects-grid">';
         for (var i = 0; i < subjectsList.length; i++) {
           var sub = subjectsList[i];
@@ -679,7 +654,6 @@ if (diffText) {
         }
         html += '</div>';
       }
-
       if (annualAverage !== null) {
         html += '<div class="annual-card">';
         html += '<div class="annual-label">MOYENNE ANNUELLE PONDEREE</div>';
@@ -687,9 +661,7 @@ if (diffText) {
         html += '<div class="annual-note-count">' + allTotalGrades + ' notes sur toute l annee</div>';
         html += '</div>';
       }
-
       contentDiv.innerHTML = html;
-
       var subjectCards = contentDiv.querySelectorAll('.subject-card[data-subject]');
       for (var i = 0; i < subjectCards.length; i++) {
         subjectCards[i].addEventListener('click', function() {
@@ -700,102 +672,90 @@ if (diffText) {
     }
 
     function showSubjectGrades(subjectName) {
-  var contentDiv = document.getElementById('ed-content');
-  if (!contentDiv) return;
-
-  previousView = 'moyennes';
-
-  var subjectGrades = originalNotes.filter(function(note) {
-    return note.libelleMatiere === subjectName && note.codePeriode === currentTrimester;
-  });
-
-  if (subjectGrades.length === 0) {
-    subjectGrades = originalNotes.filter(function(note) {
-      return note.libelleMatiere === subjectName;
-    });
-    var trimesterDisplay = 'Toutes les periodes';
-  } else {
-    var trimesterDisplay = trimesters[currentTrimester].name;
-  }
-
-  var html = '<div style="margin-bottom:20px;">';
-  html += '<button id="back-to-moyennes" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour aux moyennes</button>';
-  html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
-  html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + subjectName + '</h2>';
-  html += '<p style="color:#8E8E93;margin-bottom:24px;">' + trimesterDisplay + '</p>';
-  html += '</div>';
-
-  if (subjectGrades.length === 0) {
-    html += '<div class="empty-state"><p>Aucune note trouvee pour cette matiere</p></div>';
-  } else {
-    html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
-    for (var i = 0; i < subjectGrades.length; i++) {
-      var grade = subjectGrades[i];
-      var gradeValue = grade.valeur;
-      var noteSur = grade.noteSur || 20;
-      var gradeColor = getGradeColor(parseFloat(gradeValue.replace(',', '.')) / noteSur * 20);
-      var dateStr = grade.date || grade.dateSaisie;
-      var formattedDate = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR') : 'Date inconnue';
-      var commentaire = grade.commentaire || '';
-      var decodedComment = decodeContent(commentaire);
-
-      html += '<div style="padding:16px 20px;border-bottom:1px solid #2C2C44;display:flex;justify-content:space-between;align-items:center;">';
-      html += '<div>';
-      html += '<div style="font-size:16px;font-weight:600;color:#FFFFFF;margin-bottom:4px;">' + gradeValue + '/' + noteSur + '</div>';
-      html += '<div style="font-size:12px;color:#8E8E93;">' + formattedDate + '</div>';
-      if (decodedComment) {
-        html += '<div style="font-size:13px;color:#B3B3D2;margin-top:8px;max-width:400px;">' + decodedComment + '</div>';
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      previousView = 'moyennes';
+      var subjectGrades = originalNotes.filter(function(note) {
+        return note.libelleMatiere === subjectName && note.codePeriode === currentTrimester;
+      });
+      if (subjectGrades.length === 0) {
+        subjectGrades = originalNotes.filter(function(note) {
+          return note.libelleMatiere === subjectName;
+        });
+        var trimesterDisplay = 'Toutes les periodes';
+      } else {
+        var trimesterDisplay = trimesters[currentTrimester].name;
+      }
+      var html = '<div style="margin-bottom:20px;">';
+      html += '<button id="back-to-moyennes" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour aux moyennes</button>';
+      html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
+      html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + subjectName + '</h2>';
+      html += '<p style="color:#8E8E93;margin-bottom:24px;">' + trimesterDisplay + '</p>';
+      html += '</div>';
+      if (subjectGrades.length === 0) {
+        html += '<div class="empty-state"><p>Aucune note trouvee pour cette matiere</p></div>';
+      } else {
+        html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
+        for (var i = 0; i < subjectGrades.length; i++) {
+          var grade = subjectGrades[i];
+          var gradeValue = grade.valeur;
+          var noteSur = grade.noteSur || 20;
+          var gradeColor = getGradeColor(parseFloat(gradeValue.replace(',', '.')) / noteSur * 20);
+          var dateStr = grade.date || grade.dateSaisie;
+          var formattedDate = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR') : 'Date inconnue';
+          var commentaire = grade.commentaire || '';
+          var decodedComment = decodeContent(commentaire);
+          html += '<div style="padding:16px 20px;border-bottom:1px solid #2C2C44;display:flex;justify-content:space-between;align-items:center;">';
+          html += '<div>';
+          html += '<div style="font-size:16px;font-weight:600;color:#FFFFFF;margin-bottom:4px;">' + gradeValue + '/' + noteSur + '</div>';
+          html += '<div style="font-size:12px;color:#8E8E93;">' + formattedDate + '</div>';
+          if (decodedComment) {
+            html += '<div style="font-size:13px;color:#B3B3D2;margin-top:8px;max-width:400px;">' + decodedComment + '</div>';
+          }
+          html += '</div>';
+          html += '<div style="text-align:right;">';
+          html += '<div style="font-size:24px;font-weight:700;color:' + gradeColor + ';">' + gradeValue + '</div>';
+          html += '<div style="font-size:11px;color:#8E8E93;margin-top:4px;">Coeff. ' + (grade.coef || 1) + '</div>';
+          html += '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
       }
       html += '</div>';
-      html += '<div style="text-align:right;">';
-      html += '<div style="font-size:24px;font-weight:700;color:' + gradeColor + ';">' + gradeValue + '</div>';
-      html += '<div style="font-size:11px;color:#8E8E93;margin-top:4px;">Coeff. ' + (grade.coef || 1) + '</div>';
-      html += '</div>';
-      html += '</div>';
+      contentDiv.innerHTML = html;
+      var backButton = document.getElementById('back-to-moyennes');
+      if (backButton) {
+        backButton.addEventListener('click', function() {
+          renderMoyennes();
+        });
+      }
     }
-    html += '</div>';
-  }
 
-  html += '</div>';
-  contentDiv.innerHTML = html;
+    function getDifferenceColor(diff) {
+      if (diff > 0) return '#40D9A4';
+      if (diff < 0) return '#FF6B6B';
+      return '#8E8E93';
+    }
 
-  var backButton = document.getElementById('back-to-moyennes');
-  if (backButton) {
-    backButton.addEventListener('click', function() {
-      renderMoyennes();
-    });
-  }
-}
-
-function getDifferenceColor(diff) {
-  if (diff > 0) return '#40D9A4';
-  if (diff < 0) return '#FF6B6B';
-  return '#8E8E93';
-}
-
-function formatDifference(diff) {
-  if (diff > 0) return '+' + diff.toFixed(2);
-  if (diff < 0) return diff.toFixed(2);
-  return '0.00';
-}
+    function formatDifference(diff) {
+      if (diff > 0) return '+' + diff.toFixed(2);
+      if (diff < 0) return diff.toFixed(2);
+      return '0.00';
+    }
 
     function renderDevoirs() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
       contentDiv.innerHTML = '';
-
       var dates = Object.keys(cahierData).sort();
       var hasTasks = false;
       var html = '<div class="devoirs-container">';
-
       for (var d = 0; d < dates.length; d++) {
         var dateKey = dates[d];
         var devoirs = cahierData[dateKey];
         var formatted = formatDate(dateKey);
-
         var notDoneTasks = [];
         var doneTasks = [];
-
         for (var i = 0; i < devoirs.length; i++) {
           if (devoirs[i].effectue === false) {
             notDoneTasks.push(devoirs[i]);
@@ -803,17 +763,14 @@ function formatDifference(diff) {
             doneTasks.push(devoirs[i]);
           }
         }
-
         var allTasks = notDoneTasks.concat(doneTasks);
         if (allTasks.length > 0) {
           hasTasks = true;
-
           html += '<div style="margin-bottom:20px;">';
           html += '<div class="date-pill" data-date="' + dateKey + '" style="background:#1C1C2E;border-radius:20px;padding:14px 20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">';
           html += '<div><span style="font-weight:700;color:#5E5EFF;font-size:18px;">' + formatted.dayName + '</span><span style="color:#8E8E93;margin-left:12px;font-size:14px;">' + formatted.date + '</span></div>';
           html += '<div style="background:#2C2C44;padding:4px 10px;border-radius:20px;font-size:12px;color:#8E8E93;">' + allTasks.length + ' devoir(s)</div>';
           html += '</div>';
-
           html += '<div class="tasks-list" data-date="' + dateKey + '" style="margin-left:12px;margin-bottom:12px;">';
           for (var i = 0; i < allTasks.length; i++) {
             var task = allTasks[i];
@@ -828,37 +785,30 @@ function formatDifference(diff) {
             }
             var taskContent = decodeContent(rawContent);
             var taskDate = task.donneLe ? new Date(task.donneLe).toLocaleDateString('fr-FR') : formatted.date;
-
             html += '<div class="task-card" style="border-left-color:' + (isDone ? '#5E5EFF' : '#FFB340') + ';">';
             html += '<div class="task-meta">';
             html += '<div><strong style="color:#FFFFFF;">' + task.matiere + '</strong> <span class="task-badge">' + taskType + '</span></div>';
             html += '<div><span>' + taskDate + '</span><span>' + (isDone ? 'FAIT' : 'A FAIRE') + '</span></div>';
             html += '</div>';
-
             if (taskContent) {
               html += '<div class="task-content">' + taskContent + '</div>';
             }
-
             if (hasDocs) {
               html += '<div class="task-meta" style="margin-top:14px;">';
               html += '<span>📎 Pieces jointes disponibles</span>';
               html += '</div>';
             }
-
             html += '</div>';
           }
           html += '</div>';
           html += '</div>';
         }
       }
-
       if (!hasTasks) {
         html += '<div class="empty-state"><p>Aucun devoir a venir</p></div>';
       }
-
       html += '</div>';
       contentDiv.innerHTML = html;
-
       var datePills = document.querySelectorAll('#ed-content .date-pill');
       for (var i = 0; i < datePills.length; i++) {
         datePills[i].addEventListener('click', function(e) {
@@ -906,15 +856,12 @@ function formatDifference(diff) {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
       contentDiv.innerHTML = '';
-
       var correspondances = carnetData.correspondances || [];
-      
       function highlightText(text, searchTerm) {
         if (!searchTerm || searchTerm.trim() === "") return text;
         var regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
         return text.replace(regex, '<mark style="background:#FFD700;color:#1C1C2E;padding:0 2px;border-radius:4px;">$1</mark>');
       }
-      
       var html = '<div class="carnet-container">';
       html += '<div class="search-bar" style="margin-bottom:20px;position:sticky;top:0;background:#0B0B1A;padding:12px 0;z-index:10;">';
       html += '<div style="display:flex;gap:12px;align-items:center;background:#1C1C2E;border-radius:16px;padding:8px 16px;">';
@@ -930,35 +877,27 @@ function formatDifference(diff) {
       html += '</div>';
       html += '<div id="carnetMessages"></div>';
       html += '</div>';
-      
       contentDiv.innerHTML = html;
-      
       function renderMessages(filterText, filterType) {
         var messagesDiv = document.getElementById('carnetMessages');
         if (!messagesDiv) return;
-        
         var filtered = correspondances.filter(function(msg) {
           var auteur = msg.auteur || {};
           var auteurName = ((auteur.nom || "") + " " + (auteur.prenom || "")).toLowerCase();
           var content = (msg.contenu || "").toLowerCase();
           var date = (msg.dateCreation || "").toLowerCase();
           var searchLower = filterText.toLowerCase();
-          
           var matchesSearch = filterText === "" || auteurName.indexOf(searchLower) !== -1 || content.indexOf(searchLower) !== -1 || date.indexOf(searchLower) !== -1;
-          
           var isSigned = isActuallySigned(msg);
           var matchesFilter = true;
           if (filterType === "signed") matchesFilter = isSigned;
           if (filterType === "unsigned") matchesFilter = hasSignatureOption(msg) && !isSigned;
-          
           return matchesSearch && matchesFilter;
         });
-        
         if (filtered.length === 0) {
           messagesDiv.innerHTML = '<div class="empty-state"><p>Aucun message trouve</p></div>';
           return;
         }
-        
         var html = '';
         for (var i = 0; i < filtered.length; i++) {
           var msg = filtered[i];
@@ -971,18 +910,12 @@ function formatDifference(diff) {
           var auteurName = (auteur.nom || "") + " " + (auteur.prenom || "");
           var cleanContent = decodeContent(msg.contenu || "");
           var hasAttachment = msg.urlFichier && msg.urlFichier !== "";
-          
           var highlightedName = filterText ? highlightText(auteurName, filterText) : auteurName;
           var highlightedContent = filterText ? highlightText(cleanContent, filterText) : cleanContent;
           var highlightedDate = filterText ? highlightText(formattedDate, filterText) : formattedDate;
-          
           var borderColor = '#2C2C44';
-          if (isSigned) {
-            borderColor = '#5E5EFF';
-          } else if (hasOption) {
-            borderColor = '#FFB340';
-          }
-          
+          if (isSigned) borderColor = '#5E5EFF';
+          else if (hasOption) borderColor = '#FFB340';
           html += '<div class="carnet-card" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid ' + borderColor + ';">';
           html += '<div style="display:flex;justify-content:space-between;margin-bottom:12px;">';
           html += '<div><strong style="color:#5E5EFF;">' + highlightedName + '</strong> <span style="color:#8E8E93;font-size:12px;">(' + (msg.type || "") + ')</span></div>';
@@ -990,7 +923,6 @@ function formatDifference(diff) {
           html += '</div>';
           html += '<div style="color:#E0E0E0;font-size:14px;line-height:1.5;margin-bottom:12px;">' + highlightedContent + '</div>';
           html += '<div style="margin-top:12px;">';
-          
           if (isSigned && sig) {
             var sigDate = sig.dateValidation || sig.datevalidation || "";
             sigDate = sigDate.replace(/-/g, '/').substring(0, 16);
@@ -1001,16 +933,12 @@ function formatDifference(diff) {
           } else if (hasOption) {
             html += '<span style="color:#FFB340;font-size:12px;">○ En attente de signature</span>';
           }
-          
           if (hasAttachment) {
             html += '<button class="attachment-btn" data-file="' + msg.urlFichier + '" style="background:#2C2C44;border:none;color:#5E5EFF;padding:8px 16px;border-radius:10px;cursor:pointer;font-size:12px;margin-left:12px;">📎 Piece jointe</button>';
           }
-          
           html += '</div></div>';
         }
-        
         messagesDiv.innerHTML = html;
-        
         var attachBtns = document.querySelectorAll('.attachment-btn');
         for (var i = 0; i < attachBtns.length; i++) {
           attachBtns[i].addEventListener('click', function(e) {
@@ -1019,27 +947,22 @@ function formatDifference(diff) {
           });
         }
       }
-      
       var searchInput = document.getElementById('carnetSearch');
       var clearBtn = document.getElementById('clearSearch');
       var currentFilter = "all";
-      
       function updateMessages() {
         var searchText = searchInput ? searchInput.value : "";
         renderMessages(searchText, currentFilter);
       }
-      
       if (searchInput) {
         searchInput.addEventListener('input', updateMessages);
       }
-      
       if (clearBtn) {
         clearBtn.addEventListener('click', function() {
           if (searchInput) searchInput.value = "";
           updateMessages();
         });
       }
-      
       var filterBtns = document.querySelectorAll('.filter-btn');
       for (var i = 0; i < filterBtns.length; i++) {
         filterBtns[i].addEventListener('click', function() {
@@ -1052,137 +975,123 @@ function formatDifference(diff) {
         });
         filterBtns[i].style.opacity = i === 0 ? "1" : "0.6";
       }
-      
       renderMessages("", "all");
     }
 
     function renderVieScolaire() {
-  var contentDiv = document.getElementById('ed-content');
-  if (!contentDiv) return;
-  contentDiv.innerHTML = '';
-
-  var absencesRetards = vieScolaireData.absencesRetards || [];
-  var sanctionsEncouragements = vieScolaireData.sanctionsEncouragements || [];
-
-  var absences = absencesRetards.filter(function(item) { return item.typeElement === "Absence"; });
-  var retards = absencesRetards.filter(function(item) { return item.typeElement === "Retard"; });
-  var repas = absencesRetards.filter(function(item) { return item.typeElement === "Repas"; });
-  var punitions = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Punition"; });
-  var encouragements = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Encouragement"; });
-
-  var html = '<div class="viescolaire-container">';
-
-  if (absences.length > 0) {
-    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-    html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">Absences</h3>';
-    for (var i = 0; i < absences.length; i++) {
-      var a = absences[i];
-      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
-      html += '<div><strong>' + a.displayDate + '</strong></div>';
-      html += '<div style="color:#8E8E93;font-size:13px;">' + a.libelle + '</div>';
-      html += '<div style="color:' + (a.justifie ? '#5E5EFF' : '#FFB340') + ';font-size:13px;">' + (a.justifie ? '✓ Justifiee' : '○ Non justifiee') + '</div>';
-      if (a.motif && a.motif !== "En attente de motif") {
-        html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + a.motif + '</div>';
-      }
-      if (a.commentaire && a.commentaire !== "") {
-        html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + a.commentaire.substring(0, 100) + (a.commentaire.length > 100 ? '...' : '') + '</div>';
-      }
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-
-  if (retards.length > 0) {
-    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-    html += '<h3 style="color:#FFB340;margin-bottom:16px;">Retards</h3>';
-    for (var i = 0; i < retards.length; i++) {
-      var r = retards[i];
-      var isJustified = r.justifie === true;
-      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
-      html += '<div style="display:flex;align-items:center;gap:8px;">';
-      html += '<strong>' + r.displayDate + '</strong>';
-      if (!isJustified) {
-        html += '<span style="color:#FF5E5E;font-size:14px;">⚠️</span>';
-      }
-      html += '</div>';
-      html += '<div style="color:#8E8E93;font-size:13px;">Duree: ' + r.libelle + '</div>';
-      html += '<div style="color:' + (isJustified ? '#5E5EFF' : '#FF5E5E') + ';font-size:13px;">' + (isJustified ? '✓ Justifie' : '⚠️ Non justifie') + '</div>';
-      if (r.motif && r.motif !== "En attente de motif") {
-        html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + r.motif + '</div>';
-      }
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-
-  if (repas.length > 0) {
-    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-    html += '<h3 style="color:#FFB340;margin-bottom:16px;">Absences cantine</h3>';
-    for (var i = 0; i < repas.length; i++) {
-      var rp = repas[i];
-      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
-      html += '<div><strong>' + rp.displayDate + '</strong></div>';
-      html += '<div style="color:#8E8E93;font-size:13px;">' + rp.libelle + '</div>';
-      html += '<div style="color:#FFB340;font-size:13px;">○ Absent</div>';
-      if (rp.commentaire && rp.commentaire !== "") {
-        html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + rp.commentaire.substring(0, 100) + (rp.commentaire.length > 100 ? '...' : '') + '</div>';
-      }
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-
-  if (punitions.length > 0) {
-    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-    html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">⚠️ Punitions</h3>';
-    for (var i = 0; i < punitions.length; i++) {
-      var p = punitions[i];
-      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
-      html += '<div><strong>' + p.libelle + '</strong> - ' + p.date + '</div>';
-      html += '<div style="color:#E0E0E0;font-size:13px;">Par: ' + p.par + '</div>';
-      if (p.motif) html += '<div style="color:#8E8E93;font-size:13px;">Motif: ' + p.motif + '</div>';
-      if (p.commentaire) html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + p.commentaire + '</div>';
-      if (p.dateDeroulement) html += '<div style="color:#5E5EFF;font-size:12px;margin-top:6px;">' + p.dateDeroulement + '</div>';
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-
-  if (encouragements.length > 0) {
-    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-    html += '<h3 style="color:#5E5EFF;margin-bottom:16px;">Encouragements</h3>';
-    for (var i = 0; i < encouragements.length; i++) {
-      var e = encouragements[i];
-      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
-      html += '<div><strong>' + e.libelle + '</strong> - ' + e.date + '</div>';
-      if (e.motif) html += '<div style="color:#E0E0E0;font-size:13px;">' + e.motif + '</div>';
-      if (e.commentaire) html += '<div style="color:#8E8E93;font-size:12px;">' + e.commentaire + '</div>';
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-
-  if (absences.length === 0 && retards.length === 0 && repas.length === 0 && punitions.length === 0 && encouragements.length === 0) {
-    html += '<div class="empty-state"><p>Aucune information de vie scolaire</p></div>';
-  }
-
-  html += '</div>';
-  contentDiv.innerHTML = html;
-}
-
-function renderMessagerie() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
       contentDiv.innerHTML = '';
+      var absencesRetards = vieScolaireData.absencesRetards || [];
+      var sanctionsEncouragements = vieScolaireData.sanctionsEncouragements || [];
+      var absences = absencesRetards.filter(function(item) { return item.typeElement === "Absence"; });
+      var retards = absencesRetards.filter(function(item) { return item.typeElement === "Retard"; });
+      var repas = absencesRetards.filter(function(item) { return item.typeElement === "Repas"; });
+      var punitions = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Punition"; });
+      var encouragements = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Encouragement"; });
+      var html = '<div class="viescolaire-container">';
+      if (absences.length > 0) {
+        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+        html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">Absences</h3>';
+        for (var i = 0; i < absences.length; i++) {
+          var a = absences[i];
+          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+          html += '<div><strong>' + a.displayDate + '</strong></div>';
+          html += '<div style="color:#8E8E93;font-size:13px;">' + a.libelle + '</div>';
+          html += '<div style="color:' + (a.justifie ? '#5E5EFF' : '#FFB340') + ';font-size:13px;">' + (a.justifie ? '✓ Justifiee' : '○ Non justifiee') + '</div>';
+          if (a.motif && a.motif !== "En attente de motif") {
+            html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + a.motif + '</div>';
+          }
+          if (a.commentaire && a.commentaire !== "") {
+            html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + a.commentaire.substring(0, 100) + (a.commentaire.length > 100 ? '...' : '') + '</div>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      if (retards.length > 0) {
+        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+        html += '<h3 style="color:#FFB340;margin-bottom:16px;">Retards</h3>';
+        for (var i = 0; i < retards.length; i++) {
+          var r = retards[i];
+          var isJustified = r.justifie === true;
+          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+          html += '<div style="display:flex;align-items:center;gap:8px;">';
+          html += '<strong>' + r.displayDate + '</strong>';
+          if (!isJustified) {
+            html += '<span style="color:#FF5E5E;font-size:14px;">⚠️</span>';
+          }
+          html += '</div>';
+          html += '<div style="color:#8E8E93;font-size:13px;">Duree: ' + r.libelle + '</div>';
+          html += '<div style="color:' + (isJustified ? '#5E5EFF' : '#FF5E5E') + ';font-size:13px;">' + (isJustified ? '✓ Justifie' : '⚠️ Non justifie') + '</div>';
+          if (r.motif && r.motif !== "En attente de motif") {
+            html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + r.motif + '</div>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      if (repas.length > 0) {
+        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+        html += '<h3 style="color:#FFB340;margin-bottom:16px;">Absences cantine</h3>';
+        for (var i = 0; i < repas.length; i++) {
+          var rp = repas[i];
+          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+          html += '<div><strong>' + rp.displayDate + '</strong></div>';
+          html += '<div style="color:#8E8E93;font-size:13px;">' + rp.libelle + '</div>';
+          html += '<div style="color:#FFB340;font-size:13px;">○ Absent</div>';
+          if (rp.commentaire && rp.commentaire !== "") {
+            html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + rp.commentaire.substring(0, 100) + (rp.commentaire.length > 100 ? '...' : '') + '</div>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      if (punitions.length > 0) {
+        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+        html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">⚠️ Punitions</h3>';
+        for (var i = 0; i < punitions.length; i++) {
+          var p = punitions[i];
+          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+          html += '<div><strong>' + p.libelle + '</strong> - ' + p.date + '</div>';
+          html += '<div style="color:#E0E0E0;font-size:13px;">Par: ' + p.par + '</div>';
+          if (p.motif) html += '<div style="color:#8E8E93;font-size:13px;">Motif: ' + p.motif + '</div>';
+          if (p.commentaire) html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + p.commentaire + '</div>';
+          if (p.dateDeroulement) html += '<div style="color:#5E5EFF;font-size:12px;margin-top:6px;">' + p.dateDeroulement + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      if (encouragements.length > 0) {
+        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+        html += '<h3 style="color:#5E5EFF;margin-bottom:16px;">Encouragements</h3>';
+        for (var i = 0; i < encouragements.length; i++) {
+          var e = encouragements[i];
+          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+          html += '<div><strong>' + e.libelle + '</strong> - ' + e.date + '</div>';
+          if (e.motif) html += '<div style="color:#E0E0E0;font-size:13px;">' + e.motif + '</div>';
+          if (e.commentaire) html += '<div style="color:#8E8E93;font-size:12px;">' + e.commentaire + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      if (absences.length === 0 && retards.length === 0 && repas.length === 0 && punitions.length === 0 && encouragements.length === 0) {
+        html += '<div class="empty-state"><p>Aucune information de vie scolaire</p></div>';
+      }
+      html += '</div>';
+      contentDiv.innerHTML = html;
+    }
 
+    function renderMessagerie() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      contentDiv.innerHTML = '';
       var received = messagesData.messages?.received || [];
       var sent = messagesData.messages?.sent || [];
       var draft = messagesData.messages?.draft || [];
       var archived = messagesData.messages?.archived || [];
-
       var currentFolder = "received";
       var searchTerm = "";
-
       function decodeBase64Content(str) {
         if (!str) return "";
         try {
@@ -1200,21 +1109,17 @@ function renderMessagerie() {
           return str;
         }
       }
-
-function getMessagesByFolder() {
-  if (currentFolder === "received") return received.slice().reverse();
-  if (currentFolder === "sent") return sent.slice().reverse();
-  if (currentFolder === "draft") return draft.slice().reverse();
-  if (currentFolder === "archived") return archived.slice().reverse();
-  return [];
-}
-
+      function getMessagesByFolder() {
+        if (currentFolder === "received") return received.slice().reverse();
+        if (currentFolder === "sent") return sent.slice().reverse();
+        if (currentFolder === "draft") return draft.slice().reverse();
+        if (currentFolder === "archived") return archived.slice().reverse();
+        return [];
+      }
       function showMessageDetail(messageId) {
         var detailDiv = document.getElementById('messageDetail');
         if (!detailDiv) return;
-        
         detailDiv.innerHTML = '<div style="color:#8E8E93;text-align:center;padding:20px;">Chargement...</div>';
-        
         fetch(`https://api.ecoledirecte.com/v3/eleves/${id}/messages/${messageId}.awp?verbe=get&mode=destinataire&v=4.98.0`, {
           method: "POST",
           headers: {
@@ -1230,19 +1135,16 @@ function getMessagesByFolder() {
             detailDiv.innerHTML = '<div style="color:#FF5E5E;text-align:center;padding:20px;">Message non trouvé</div>';
             return;
           }
-          
           var contactName = "";
           if (currentFolder === "received" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
           if (currentFolder === "sent" && msg.to && msg.to.length > 0) contactName = (msg.to[0].nom || "") + " " + (msg.to[0].prenom || "");
           if (currentFolder === "draft") contactName = "Brouillon";
           if (currentFolder === "archived" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
-          
           var date = msg.date || "";
           var formattedDate = date.replace(/-/g, '/').substring(0, 16);
           var cleanContent = decodeBase64Content(msg.content || "");
           var subject = msg.subject || "(Sans objet)";
           var hasAttachment = msg.files && msg.files.length > 0;
-          
           var html = '<div style="background:#1C1C2E;border-radius:20px;padding:24px;">';
           html += '<div style="display:flex;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;">';
           html += '<div><strong style="color:#5E5EFF;font-size:18px;">' + contactName + '</strong></div>';
@@ -1265,7 +1167,6 @@ function getMessagesByFolder() {
           detailDiv.innerHTML = '<div style="color:#FF5E5E;text-align:center;padding:20px;">Erreur: ' + err.message + '</div>';
         });
       }
-
       function renderMessages() {
         var messages = getMessagesByFolder();
         var filtered = messages.filter(function(msg) {
@@ -1279,15 +1180,12 @@ function getMessagesByFolder() {
           var searchLower = searchTerm.toLowerCase();
           return contactName.toLowerCase().indexOf(searchLower) !== -1 || subject.toLowerCase().indexOf(searchLower) !== -1;
         });
-        
         var listDiv = document.getElementById('messageList');
         if (!listDiv) return;
-        
         if (filtered.length === 0) {
           listDiv.innerHTML = '<div style="color:#8E8E93;text-align:center;padding:40px;">Aucun message</div>';
           return;
         }
-        
         var html = '';
         for (var i = 0; i < filtered.length; i++) {
           var msg = filtered[i];
@@ -1296,13 +1194,11 @@ function getMessagesByFolder() {
           if (currentFolder === "sent" && msg.to && msg.to.length > 0) contactName = (msg.to[0].nom || "") + " " + (msg.to[0].prenom || "");
           if (currentFolder === "draft") contactName = "Brouillon";
           if (currentFolder === "archived" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
-          
           var date = msg.date || "";
           var formattedDate = date.replace(/-/g, '/').substring(0, 16);
           var subject = msg.subject || "(Sans objet)";
           var isRead = msg.read === true;
           var hasAttachment = msg.files && msg.files.length > 0;
-          
           html += '<div class="message-item" data-id="' + msg.id + '" style="background:#1C1C2E;border-radius:12px;padding:16px;margin-bottom:12px;border-left:4px solid ' + (isRead ? '#2C2C44' : '#5E5EFF') + ';cursor:pointer;">';
           html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
           html += '<div><strong style="color:#5E5EFF;">' + contactName + '</strong></div>';
@@ -1315,7 +1211,6 @@ function getMessagesByFolder() {
           html += '</div>';
         }
         listDiv.innerHTML = html;
-        
         var messageItems = document.querySelectorAll('.message-item');
         for (var i = 0; i < messageItems.length; i++) {
           messageItems[i].addEventListener('click', function() {
@@ -1324,7 +1219,6 @@ function getMessagesByFolder() {
           });
         }
       }
-
       function refreshUI() {
         renderMessages();
         var folderBtns = document.querySelectorAll('.folder-btn');
@@ -1336,7 +1230,6 @@ function getMessagesByFolder() {
           }
         }
       }
-
       var html = '<div style="max-width:1400px;margin:0 auto;">';
       html += '<div style="margin-bottom:24px;">';
       html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">';
@@ -1355,9 +1248,7 @@ function getMessagesByFolder() {
       html += '<div id="messageList" style="flex:1;"></div>';
       html += '<div id="messageDetail" style="flex:1;min-width:400px;"></div>';
       html += '</div></div>';
-      
       contentDiv.innerHTML = html;
-      
       var folderBtns = document.querySelectorAll('.folder-btn');
       for (var i = 0; i < folderBtns.length; i++) {
         folderBtns[i].addEventListener('click', function() {
@@ -1368,7 +1259,6 @@ function getMessagesByFolder() {
           refreshUI();
         });
       }
-      
       var searchInput = document.getElementById('searchInput');
       if (searchInput) {
         searchInput.addEventListener('input', function(e) {
@@ -1376,7 +1266,6 @@ function getMessagesByFolder() {
           renderMessages();
         });
       }
-      
       var clearBtn = document.getElementById('clearSearch');
       if (clearBtn) {
         clearBtn.addEventListener('click', function() {
@@ -1386,19 +1275,16 @@ function getMessagesByFolder() {
           renderMessages();
         });
       }
-      
       refreshUI();
     }
 
     function renderApiLog() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
-      
       if (apiLogs.length === 0) {
         contentDiv.innerHTML = '<div class="empty-state"><p>Aucun log API. Activez le debug dans les parametres.</p></div>';
         return;
       }
-      
       var html = '<div style="background:#1C1C2E;border-radius:20px;padding:20px;">';
       html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">📋 API Logs</h2>';
       html += '<div style="overflow-x:auto;">';
@@ -1409,7 +1295,6 @@ function getMessagesByFolder() {
       html += '<th style="text-align:left;padding:8px;color:#8E8E93;">Status</th>';
       html += '<th style="text-align:left;padding:8px;color:#8E8E93;">Duree</th>';
       html += '</tr>';
-      
       for (var i = 0; i < apiLogs.length; i++) {
         var log = apiLogs[i];
         var statusColor = log.responseCode === 200 ? '#5E5EFF' : '#FF5E5E';
@@ -1420,7 +1305,6 @@ function getMessagesByFolder() {
         html += '<td style="padding:8px;font-size:12px;color:#8E8E93;">' + log.duration + '</td>';
         html += '</tr>';
       }
-      
       html += '</table></div></div>';
       contentDiv.innerHTML = html;
     }
@@ -1428,7 +1312,6 @@ function getMessagesByFolder() {
     function renderSettings() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
-      
       var html = '<div class="settings-container">';
       html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
       html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">Parametres</h2>';
@@ -1442,9 +1325,7 @@ function getMessagesByFolder() {
       html += '<button id="viewApiLogsBtn" style="width:100%;margin-top:16px;background:#2C2C44;border:none;color:#5E5EFF;padding:12px;border-radius:12px;cursor:pointer;font-size:14px;">📋 Voir les logs API</button>';
       html += '</div>';
       html += '</div>';
-      
       contentDiv.innerHTML = html;
-      
       var debugToggle = document.getElementById('debugToggle');
       if (debugToggle) {
         debugToggle.addEventListener('change', function(e) {
@@ -1454,7 +1335,6 @@ function getMessagesByFolder() {
           }
         });
       }
-      
       var viewLogsBtn = document.getElementById('viewApiLogsBtn');
       if (viewLogsBtn) {
         viewLogsBtn.addEventListener('click', function() {
@@ -1476,15 +1356,12 @@ function getMessagesByFolder() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
       contentDiv.innerHTML = '';
-
       if (!espaceData || espaceData.length === 0) {
         contentDiv.innerHTML = '<div class="empty-state"><p>Aucun espace de travail disponible</p></div>';
         return;
       }
-
       var mySpaces = [];
       var otherSpaces = [];
-
       for (var i = 0; i < espaceData.length; i++) {
         var space = espaceData[i];
         if (space.estMembre === true) {
@@ -1493,9 +1370,7 @@ function getMessagesByFolder() {
           otherSpaces.push(space);
         }
       }
-
       var html = '';
-
       if (mySpaces.length > 0) {
         html += '<h2 style="color:#5E5EFF;margin-bottom:16px;font-size:20px;">Mes espaces</h2>';
         html += '<div class="espaces-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:32px;">';
@@ -1517,7 +1392,6 @@ function getMessagesByFolder() {
         }
         html += '</div>';
       }
-
       if (otherSpaces.length > 0) {
         html += '<h2 style="color:#8E8E93;margin-bottom:16px;font-size:18px;">Autres espaces disponibles</h2>';
         html += '<div class="espaces-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;">';
@@ -1538,9 +1412,7 @@ function getMessagesByFolder() {
         }
         html += '</div>';
       }
-
       contentDiv.innerHTML = html;
-
       var spaceCards = document.querySelectorAll('.espace-card[data-space-id]');
       for (var i = 0; i < spaceCards.length; i++) {
         spaceCards[i].addEventListener('click', function(e) {
@@ -1560,14 +1432,11 @@ function getMessagesByFolder() {
     function loadFolder(spaceId, folderId) {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
-
       contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
-
       var url = `https://api.ecoledirecte.com/v3/cloud/W/${spaceId}.awp?verbe=get&v=4.98.0`;
       if (folderId && folderId !== '/') {
         url = `https://api.ecoledirecte.com/v3/cloud/W/${spaceId}/${encodeURIComponent(folderId)}.awp?verbe=get&v=4.98.0`;
       }
-
       fetch(url, {
         method: "POST",
         headers: {
@@ -1580,7 +1449,6 @@ function getMessagesByFolder() {
       .then(function(json) {
         var data = json.data;
         var items = [];
-
         if (data && data.length > 0) {
           if (folderId && folderId !== '/') {
             items = data;
@@ -1593,7 +1461,6 @@ function getMessagesByFolder() {
             }
           }
         }
-
         renderCloudExplorer(spaceId, items, folderId);
       })
       .catch(function(e) {
@@ -1607,51 +1474,40 @@ function getMessagesByFolder() {
     function renderCloudExplorer(spaceId, items, currentFolderId) {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
-
       var html = '<div style="margin-bottom:20px;">';
       if (currentPath.length > 0) {
         html += '<button id="backBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour</button>';
       }
       html += '<button id="cloudBackToSpacesBtn" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;margin-left:10px;">← Retour aux espaces</button>';
       html += '</div>';
-
       if (items && items.length > 0) {
         html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
-
         for (var i = 0; i < items.length; i++) {
           var item = items[i];
           var isFolder = item.type === 'folder';
           var icon = isFolder ? '📁' : '📄';
-
           html += '<div style="padding:12px 16px;border-bottom:1px solid #2C2C44;display:flex;align-items:center;justify-content:space-between;' + (isFolder ? 'cursor:pointer;' : '') + '"';
-
           if (isFolder) {
             html += ' onclick="window.navigateToFolder(\'' + encodeURIComponent(item.id) + '\')"';
           }
-
           html += '>';
           html += '<div style="display:flex;align-items:center;gap:12px;">';
           html += '<span style="font-size:18px;">' + icon + '</span>';
           html += '<span style="color:#E0E0E0;">' + item.libelle + '</span>';
           html += '</div>';
-
           if (!isFolder) {
             var size = item.taille || 0;
             html += '<span style="color:#8E8E93;font-size:12px;">' + formatFileSize(size) + '</span>';
           } else {
             html += '<span style="color:#5E5EFF;font-size:12px;">Dossier</span>';
           }
-
           html += '</div>';
         }
-
         html += '</div>';
       } else {
         html += '<div class="empty-state"><p>Dossier vide</p></div>';
       }
-
       contentDiv.innerHTML = html;
-
       if (currentPath.length > 0) {
         var backBtn = document.getElementById('backBtn');
         if (backBtn) {
@@ -1662,7 +1518,6 @@ function getMessagesByFolder() {
           });
         }
       }
-
       var backToSpacesBtn = document.getElementById('cloudBackToSpacesBtn');
       if (backToSpacesBtn) {
         backToSpacesBtn.addEventListener('click', function() {
@@ -1776,7 +1631,7 @@ function getMessagesByFolder() {
           <button class="tab-btn" data-tab="espacetravail">Espace travail</button>
           <button class="tab-btn" data-tab="carnet">Carnet</button>
           <button class="tab-btn" data-tab="viescolaire">Vie scolaire</button>
-<button class="tab-btn" data-tab="messagerie">Messages</button>
+          <button class="tab-btn" data-tab="messagerie">Messages</button>
           <button class="tab-btn" data-tab="settings">Parametres</button>
         </div>
         <div id="ed-content"></div>
@@ -1862,7 +1717,7 @@ function getMessagesByFolder() {
     var activeTri = document.querySelector('#ed-widget .trimester-option[data-tri="' + currentTrimester + '"]');
     if (activeTri) activeTri.classList.add('active');
 
-      renderContent();
+    renderContent();
 
     }, 50);
 
@@ -1870,13 +1725,10 @@ function getMessagesByFolder() {
 
   } catch (error) {
     console.error('Erreur dans le script EcoleDirecte:', error);
-    
     var loadingElement = document.getElementById('ed-loading');
     if (loadingElement) loadingElement.remove();
-    
     var placeholderElement = document.getElementById('ed-widget-placeholder');
     if (placeholderElement) placeholderElement.remove();
-    
     completion("Erreur: " + (error.message || "Erreur inconnue"));
   }
 })();
