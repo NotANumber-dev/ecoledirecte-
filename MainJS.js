@@ -1578,3 +1578,4 @@ function formatDifference(diff) {
     completion("Erreur: " + (error.message || "Erreur inconnue"));
   }
 })();
+completion(result);
