@@ -1154,13 +1154,13 @@ function renderMessagerie() {
         }
       }
 
-      function getMessagesByFolder() {
-        if (currentFolder === "received") return received;
-        if (currentFolder === "sent") return sent;
-        if (currentFolder === "draft") return draft;
-        if (currentFolder === "archived") return archived;
-        return [];
-      }
+function getMessagesByFolder() {
+  if (currentFolder === "received") return received.slice().reverse();
+  if (currentFolder === "sent") return sent.slice().reverse();
+  if (currentFolder === "draft") return draft.slice().reverse();
+  if (currentFolder === "archived") return archived.slice().reverse();
+  return [];
+}
 
       function showMessageDetail(messageId) {
         var detailDiv = document.getElementById('messageDetail');
