@@ -1,7 +1,7 @@
 <div align="center">
 <img src="icon/icon.png" height="100px"/>
 <h1 align="center">EcoleDirecte -</h1>
-<h3 align="center">EcoleDirecte 500x mieux | Raccourci i/iPad/mac OS
+<h3 align="center">EcoleDirecte 500x mieux | Raccourci iPhone/iPad/iMac/Mac/MacMini
 </div>
 
 ## Fonctionnalités
