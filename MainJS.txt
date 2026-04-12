@@ -540,71 +540,72 @@
     }
 
     function showSubjectGrades(subjectName) {
-      var contentDiv = document.getElementById('ed-content');
-      if (!contentDiv) return;
+  var contentDiv = document.getElementById('ed-content');
+  if (!contentDiv) return;
 
-      previousView = 'moyennes';
+  previousView = 'moyennes';
 
-      var subjectGrades = originalNotes.filter(function(note) {
-        return note.libelleMatiere === subjectName && note.codePeriode === currentTrimester;
-      });
+  var subjectGrades = originalNotes.filter(function(note) {
+    return note.libelleMatiere === subjectName && note.codePeriode === currentTrimester;
+  });
 
-      if (subjectGrades.length === 0) {
-        subjectGrades = originalNotes.filter(function(note) {
-          return note.libelleMatiere === subjectName;
-        });
-        var trimesterDisplay = 'Toutes les periodes';
-      } else {
-        var trimesterDisplay = trimesters[currentTrimester].name;
+  if (subjectGrades.length === 0) {
+    subjectGrades = originalNotes.filter(function(note) {
+      return note.libelleMatiere === subjectName;
+    });
+    var trimesterDisplay = 'Toutes les periodes';
+  } else {
+    var trimesterDisplay = trimesters[currentTrimester].name;
+  }
+
+  var html = '<div style="margin-bottom:20px;">';
+  html += '<button id="back-to-moyennes" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour aux moyennes</button>';
+  html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
+  html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + subjectName + '</h2>';
+  html += '<p style="color:#8E8E93;margin-bottom:24px;">' + trimesterDisplay + '</p>';
+  html += '</div>';
+
+  if (subjectGrades.length === 0) {
+    html += '<div class="empty-state"><p>Aucune note trouvee pour cette matiere</p></div>';
+  } else {
+    html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
+    for (var i = 0; i < subjectGrades.length; i++) {
+      var grade = subjectGrades[i];
+      var gradeValue = grade.valeur;
+      var noteSur = grade.noteSur || 20;
+      var gradeColor = getGradeColor(parseFloat(gradeValue.replace(',', '.')) / noteSur * 20);
+      var dateStr = grade.date || grade.dateSaisie;
+      var formattedDate = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR') : 'Date inconnue';
+      var commentaire = grade.commentaire || '';
+      var decodedComment = decodeContent(commentaire);
+
+      html += '<div style="padding:16px 20px;border-bottom:1px solid #2C2C44;display:flex;justify-content:space-between;align-items:center;">';
+      html += '<div>';
+      html += '<div style="font-size:16px;font-weight:600;color:#FFFFFF;margin-bottom:4px;">' + gradeValue + '/' + noteSur + '</div>';
+      html += '<div style="font-size:12px;color:#8E8E93;">' + formattedDate + '</div>';
+      if (decodedComment) {
+        html += '<div style="font-size:13px;color:#B3B3D2;margin-top:8px;max-width:400px;">' + decodedComment + '</div>';
       }
-
-      var html = '<div style="margin-bottom:20px;">';
-      html += '<button id="back-to-moyennes" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour aux moyennes</button>';
-      html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
-      html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + subjectName + '</h2>';
-      html += '<p style="color:#8E8E93;margin-bottom:24px;">' + trimesterDisplay + '</p>';
       html += '</div>';
-
-      if (subjectGrades.length === 0) {
-        html += '<div class="empty-state"><p>Aucune note trouvee pour cette matiere</p></div>';
-      } else {
-        html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
-        for (var i = 0; i < subjectGrades.length; i++) {
-          var grade = subjectGrades[i];
-          var gradeValue = grade.valeur;
-          var gradeColor = getGradeColor(parseFloat(gradeValue.replace(',', '.')));
-          var dateStr = grade.date || grade.dateSaisie;
-          var formattedDate = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR') : 'Date inconnue';
-          var commentaire = grade.commentaire || '';
-          var decodedComment = decodeContent(commentaire);
-
-          html += '<div style="padding:16px 20px;border-bottom:1px solid #2C2C44;display:flex;justify-content:space-between;align-items:center;">';
-          html += '<div>';
-          html += '<div style="font-size:16px;font-weight:600;color:#FFFFFF;margin-bottom:4px;">' + gradeValue + '/20</div>';
-          html += '<div style="font-size:12px;color:#8E8E93;">' + formattedDate + '</div>';
-          if (decodedComment) {
-            html += '<div style="font-size:13px;color:#B3B3D2;margin-top:8px;max-width:400px;">' + decodedComment + '</div>';
-          }
-          html += '</div>';
-          html += '<div style="text-align:right;">';
-          html += '<div style="font-size:24px;font-weight:700;color:' + gradeColor + ';">' + gradeValue + '</div>';
-          html += '<div style="font-size:11px;color:#8E8E93;margin-top:4px;">Coeff. ' + (grade.coef || 1) + '</div>';
-          html += '</div>';
-          html += '</div>';
-        }
-        html += '</div>';
-      }
-
+      html += '<div style="text-align:right;">';
+      html += '<div style="font-size:24px;font-weight:700;color:' + gradeColor + ';">' + gradeValue + '</div>';
+      html += '<div style="font-size:11px;color:#8E8E93;margin-top:4px;">Coeff. ' + (grade.coef || 1) + '</div>';
       html += '</div>';
-      contentDiv.innerHTML = html;
-
-      var backButton = document.getElementById('back-to-moyennes');
-      if (backButton) {
-        backButton.addEventListener('click', function() {
-          renderMoyennes();
-        });
-      }
+      html += '</div>';
     }
+    html += '</div>';
+  }
+
+  html += '</div>';
+  contentDiv.innerHTML = html;
+
+  var backButton = document.getElementById('back-to-moyennes');
+  if (backButton) {
+    backButton.addEventListener('click', function() {
+      renderMoyennes();
+    });
+  }
+}
 
     function renderDevoirs() {
       var contentDiv = document.getElementById('ed-content');
