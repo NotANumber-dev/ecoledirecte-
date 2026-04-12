@@ -1,3 +1,5 @@
+//👋salut
+//https://github.com/NotANumber-dev/ecoledirecte-
 (async () => {
   try {
     var credentials = JSON.parse(sessionStorage.getItem("credentials"));
