@@ -408,6 +408,10 @@ document.body.style.backgroundColor = '#000000';
         var subj = currentTrim.subjects[subject];
         return { name: subject, average: subj.average, count: subj.count };
       }).sort(function(a, b) { return b.average - a.average; }).slice(0, 4);
+       var previousAvg = null;
+       var avgDiff = null;
+       var diffColor = '#8E8E93';
+       var diffText = '';
 
       var homeworkCount = 0;
       var dates = Object.keys(cahierData || {});
@@ -443,6 +447,11 @@ document.body.style.backgroundColor = '#000000';
       html += '<div class="hero-card">';
       html += '<div class="hero-stats"><span>Devoirs à faire</span><strong>' + homeworkCount + '</strong></div>';
       html += '<div class="hero-stats"><span>Moyenne générale</span><strong>' + (currentTrimAvg !== null ? currentTrimAvg.toFixed(2) : '—') + '</strong></div>';
+      html += '<div style="display:flex;align-items:baseline;gap:8px;">';
+      html += '<strong>' + (currentTrimAvg !== null ? currentTrimAvg.toFixed(2) : '—') + '</strong>';
+if (diffText) {
+  html += '<span style="font-size:14px;color:' + diffColor + ';">' + diffText + '</span>';
+}
       html += '</div>';
       html += '</div>';
 
@@ -514,6 +523,9 @@ document.body.style.backgroundColor = '#000000';
         for (var i = 0; i < subjectsList.length; i++) {
           var sub = subjectsList[i];
           var gradeColor = getGradeColor(sub.average);
+          var diff = sub.average - trimesterAverage;
+          var diffColor = getDifferenceColor(diff);
+          var diffText = formatDifference(diff);
           html += '<div class="subject-card" data-subject="' + sub.name.replace(/'/g, "\\'") + '" style="cursor:pointer;">';
           html += '<div class="subject-header">';
           html += '<span class="subject-name">' + sub.name + '</span>';
@@ -522,6 +534,7 @@ document.body.style.backgroundColor = '#000000';
           html += '<div class="subject-stats">';
           html += '<span><span class="grade-indicator" style="background:' + gradeColor + ';"></span>' + sub.count + ' note(s)</span>';
           html += '<span>Coeff. ' + sub.coefSum.toFixed(1) + '</span>';
+          html += '<div style="font-size:12px;color:' + diffColor + ';margin-left:8px;">' + diffText + '</div>';
           html += '</div>';
           html += '</div>';
         }
@@ -613,6 +626,18 @@ document.body.style.backgroundColor = '#000000';
       renderMoyennes();
     });
   }
+}
+
+function getDifferenceColor(diff) {
+  if (diff > 0) return '#40D9A4';
+  if (diff < 0) return '#FF6B6B';
+  return '#8E8E93';
+}
+
+function formatDifference(diff) {
+  if (diff > 0) return '+' + diff.toFixed(2);
+  if (diff < 0) return diff.toFixed(2);
+  return '0.00';
 }
 
     function renderDevoirs() {
