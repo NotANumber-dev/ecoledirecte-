@@ -1753,7 +1753,7 @@ function getMessagesByFolder() {
         .hero-stats span { color: #8E8E93; font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; }
         .hero-stats strong { font-size: 32px; letter-spacing: 0.03em; }
         .home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 28px; }
-        .home-card { background: #1C1C2E; border-radius: 20px; padding: 22px; width: 92vw; display: grid; height: fit-content; flex-shrink: 0; gap: 8px; }
+        .home-card { background: #1C1C2E; border-radius: 20px; padding: 22px; width: 88vw; display: grid; height: fit-content; flex-shrink: 0; gap: 8px; }
         .card-title { color: #8E8E93; font-size: 13px; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.8px; }
         .home-subject { display: flex; justify-content: space-between; margin-bottom: 12px; color: #E8E8FF; font-size: 15px; }
         .task-card { background: #1C1C2E; border-radius: 18px; padding: 18px; margin-bottom: 12px; border-left: 4px solid #5E5EFF; }
