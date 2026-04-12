@@ -5,11 +5,33 @@
     var accounts = JSON.parse(sessionStorage.getItem("accounts"));
     var id = accounts.payload.accounts[0].id;
 
-    var placeholderWidget = document.createElement('div');
-    placeholderWidget.id = 'ed-widget';
-    placeholderWidget.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0B0B1A;z-index:999999;overflow:auto;color:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
-    placeholderWidget.innerHTML = '<div class="m-container" style="padding:24px;"><div style="font-size:18px;color:#FFFFFF;">Chargement...</div></div>';
-    document.body.appendChild(placeholderWidget);
+    var apiLogs = [];
+    var debugEnabled = false;
+
+    function logApiCall(url, responseCode, duration) {
+      if (!debugEnabled) return;
+      apiLogs.unshift({
+        timestamp: new Date().toLocaleString('fr-FR'),
+        url: url,
+        responseCode: responseCode,
+        duration: duration + "ms"
+      });
+      if (apiLogs.length > 100) apiLogs.pop();
+    }
+
+    async function fetchWithLog(url, options, logUrl) {
+      var startTime = Date.now();
+      try {
+        var res = await fetch(url, options);
+        var duration = Date.now() - startTime;
+        logApiCall(logUrl || url, res.status, duration);
+        return res;
+      } catch(e) {
+        var duration = Date.now() - startTime;
+        logApiCall(logUrl || url, "ERROR", duration);
+        throw e;
+      }
+    }
 
     function fetchWithTimeout(url, options, timeout = 5000) {
       return Promise.race([
@@ -20,7 +42,11 @@
       ]);
     }
 
-    console.log('Démarrage ultra-rapide pour test...');
+    var placeholderWidget = document.createElement('div');
+    placeholderWidget.id = 'ed-widget-placeholder';
+    placeholderWidget.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0B0B1A;z-index:999998;overflow:auto;color:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+    placeholderWidget.innerHTML = '<div class="m-container" style="padding:24px;"><div style="font-size:18px;color:#FFFFFF;">Chargement...</div></div>';
+    document.body.appendChild(placeholderWidget);
 
     var notesPromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/notes.awp?verbe=get&v=6.17.0`, {
       method: "POST",
@@ -61,21 +87,54 @@
       return { data: [] };
     });
 
-    var results = await Promise.all([notesPromise, devoirsPromise, espacePromise]);
+    var carnetPromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/eleveCarnetCorrespondance.awp?verbe=get&v=4.98.0`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Token": token
+      },
+      body: "data=" + encodeURIComponent(JSON.stringify({}))
+    }, 5000).then(function(res) {
+      return res.ok ? res.json() : { data: { correspondances: [] } };
+    }).catch(function() {
+      return { data: { correspondances: [] } };
+    });
+
+    var vieScolairePromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/viescolaire.awp?verbe=get&v=4.98.0`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Token": token
+      },
+      body: "data=" + encodeURIComponent(JSON.stringify({}))
+    }, 5000).then(function(res) {
+      return res.ok ? res.json() : { data: { absencesRetards: [], sanctionsEncouragements: [] } };
+    }).catch(function() {
+      return { data: { absencesRetards: [], sanctionsEncouragements: [] } };
+    });
+
+    var results = await Promise.all([notesPromise, devoirsPromise, espacePromise, carnetPromise, vieScolairePromise]);
     var notesJson = results[0];
     var devoirsJson = results[1];
     var espaceJson = results[2];
+    var carnetJson = results[3];
+    var vieScolaireJson = results[4];
+
     var data = notesJson.data || {};
     var originalNotes = data.notes || [];
     var cahierData = devoirsJson.data || {};
     var espaceData = espaceJson.data || [];
-
+    var carnetData = carnetJson.data || { correspondances: [] };
+    var vieScolaireData = vieScolaireJson.data || { absencesRetards: [], sanctionsEncouragements: [] };
 
     var loadingWidget = document.createElement('div');
     loadingWidget.id = 'ed-loading';
     loadingWidget.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1C1C2E;color:#FFFFFF;padding:20px;border-radius:12px;z-index:1000000;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
     loadingWidget.innerHTML = '<div style="text-align:center;"><div style="font-size:16px;margin-bottom:8px;">Chargement...</div><div style="width:40px;height:4px;background:#2C2C44;border-radius:2px;overflow:hidden;margin:0 auto;"><div style="width:100%;height:100%;background:#5E5EFF;border-radius:2px;animation:loading 1.5s ease-in-out infinite;"></div></div></div><style>@keyframes loading { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }</style>';
     document.body.appendChild(loadingWidget);
+
+    var placeholderElement = document.getElementById('ed-widget-placeholder');
+    if (placeholderElement) placeholderElement.remove();
 
     var trimesters = {
       "A001": { name: "1er Trimestre", subjects: {} },
@@ -130,8 +189,8 @@
     var currentTrimester = "A001";
     var dayDetailsCache = {};
     var previousView = null;
-
-
+    var currentSpaceId = null;
+    var currentPath = [];
 
     document.body.appendChild(widget);
 
@@ -147,77 +206,22 @@
     currentTrimester = chooseDefaultTrimester();
 
     function getEncouragementMessage(average) {
-      if (average === null || isNaN(average)) return "Prêt à commencer l'année ! 💪";
+      if (average === null || isNaN(average)) return "Pret a commencer l'annee !";
 
       var messages = [];
+      if (average >= 0 && average < 5) messages = ["Chaque debut compte, commence petit !", "Un pas a la fois, tu vas y arriver !", "C'est le moment de s'y mettre !"];
+      else if (average >= 5 && average < 8) messages = ["Allez on s'y met, travaille dur !", "Le succes vient a ceux qui persistent !", "Chaque effort compte, continue !"];
+      else if (average >= 8 && average < 10) messages = ["Tu progresses, continue comme ca !", "Petit a petit, l'oiseau fait son nid !", "Les progres sont la, garde le cap !"];
+      else if (average >= 10 && average < 11) messages = ["Pas mal, continue, tu peux le faire !", "Tu es sur la bonne voie !", "Continue tes efforts, ca paye !"];
+      else if (average >= 11 && average < 13) messages = ["Bien joue, garde le rythme !", "Tu es en train de prendre de l'elan !", "Continue comme ca, tu avances !"];
+      else if (average >= 13 && average < 15) messages = ["C'est bien ! Continue !", "Tu es dans le game !", "Excellent travail, poursuis !"];
+      else if (average >= 15 && average < 17) messages = ["Excellent travail ! Tu es sur la bonne voie !", "Tu es impressionnant !", "Continue, tu es fait pour reussir !"];
+      else if (average >= 17 && average < 18.5) messages = ["Waouh, tu es incroyable !", "Tu es un champion !", "Bravo, tu es au top !"];
+      else if (average >= 18.5 && average < 20) messages = ["Va t'amuser, tu es le meilleur !", "Tu es une legende !", "Felicitations, tu es exceptionnel !"];
+      else if (average === 20) messages = ["Parfait ! Tu es le maitre !", "20/20, tu es invincible !"];
 
-      if (average >= 0 && average < 5) {
-        messages = [
-          "Chaque début compte, commence petit ! 🌱",
-          "Un pas à la fois, tu vas y arriver ! 👟",
-          "C'est le moment de s'y mettre ! 🚀"
-        ];
-      } else if (average >= 5 && average < 8) {
-        messages = [
-          "Allez on s'y met, travaille dur ! 💪",
-          "Le succès vient à ceux qui persistent ! 💪",
-          "Chaque effort compte, continue ! 📈"
-        ];
-      } else if (average >= 8 && average < 10) {
-        messages = [
-          "Tu progresses, continue comme ça ! 📈",
-          "Petit à petit, l'oiseau fait son nid ! 🐦",
-          "Les progrès sont là, garde le cap ! 🎯"
-        ];
-      } else if (average >= 10 && average < 11) {
-        messages = [
-          "Pas mal, continue, tu peux le faire ! 👍",
-          "Tu es sur la bonne voie ! 👌",
-          "Continue tes efforts, ça paye ! 💰"
-        ];
-      } else if (average >= 11 && average < 13) {
-        messages = [
-          "Bien joué, garde le rythme ! 🔥",
-          "Tu es en train de prendre de l'élan ! ⚡",
-          "Continue comme ça, tu avances ! 🚀"
-        ];
-      } else if (average >= 13 && average < 15) {
-        messages = [
-          "🤫, C'est bien ! Continue ! 😎",
-          "Tu es dans le game ! 🎮",
-          "Excellent travail, poursuis ! ⭐"
-        ];
-      } else if (average >= 15 && average < 17) {
-        messages = [
-          "Excellent travail ! Tu es sur la bonne voie ! ⭐",
-          "Tu es impressionnant ! 🌟",
-          "Continue, tu es fait pour réussir ! 🏆"
-        ];
-      } else if (average >= 17 && average < 18.5) {
-        messages = [
-          "Waouh, tu es incroyable ! 🏆",
-          "Tu es un champion ! 👑",
-          "Bravo, tu es au top ! 🎖️"
-        ];
-      } else if (average >= 18.5 && average < 20) {
-        messages = [
-          "Va t'amuser, tu es le GOAT ! 🐐",
-          "Tu es une légende ! 🏅",
-          "Félicitations, tu es exceptionnel ! 🎉"
-        ];
-      } else if (average === 20) {
-        messages = [
-          "FAAAAAAAAAH, Sigma ! 🤫🗿",
-          "Parfait ! Tu es le maître ! 👑",
-          "20/20, tu es invincible ! ⚔️"
-        ];
-      }
-
-      if (messages.length > 0) {
-        return messages[Math.floor(Math.random() * messages.length)];
-      }
-
-      return "Continue tes efforts ! 📚";
+      if (messages.length > 0) return messages[Math.floor(Math.random() * messages.length)];
+      return "Continue tes efforts !";
     }
 
     function getGradeColor(avg) {
@@ -301,6 +305,7 @@
       contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
 
       try {
+        var startTime = Date.now();
         var res = await fetch(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte/${dateKey}.awp?verbe=get&v=4.98.0`, {
           method: "POST",
           headers: {
@@ -309,6 +314,8 @@
           },
           body: "data=" + encodeURIComponent(JSON.stringify({}))
         });
+        var duration = Date.now() - startTime;
+        logApiCall(`Cahier texte ${dateKey}`, res.status, duration);
 
         var json = await res.json();
         var matieres = json.data.matieres || [];
@@ -485,9 +492,6 @@
       }
       var annualAverage = allTotalCoef > 0 ? (allTotalWeighted / allTotalCoef) : null;
 
-      var contentDiv = document.getElementById('ed-content');
-      if (!contentDiv) return;
-
       var html = '';
 
       if (subjectsList.length === 0) {
@@ -549,9 +553,7 @@
         subjectGrades = originalNotes.filter(function(note) {
           return note.libelleMatiere === subjectName;
         });
-        if (subjectGrades.length > 0) {
-          var trimesterDisplay = 'Toutes les périodes';
-        }
+        var trimesterDisplay = 'Toutes les periodes';
       } else {
         var trimesterDisplay = trimesters[currentTrimester].name;
       }
@@ -564,7 +566,7 @@
       html += '</div>';
 
       if (subjectGrades.length === 0) {
-        html += '<div class="empty-state"><p>Aucune note trouvée pour cette matière</p></div>';
+        html += '<div class="empty-state"><p>Aucune note trouvee pour cette matiere</p></div>';
       } else {
         html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
         for (var i = 0; i < subjectGrades.length; i++) {
@@ -666,7 +668,7 @@
 
             if (hasDocs) {
               html += '<div class="task-meta" style="margin-top:14px;">';
-              html += '<span>📎 Pièces jointes disponibles</span>';
+              html += '<span>📎 Pieces jointes disponibles</span>';
               html += '</div>';
             }
 
@@ -690,6 +692,371 @@
           e.stopPropagation();
           var dateKey = this.getAttribute('data-date');
           showDayDetails(dateKey);
+        });
+      }
+    }
+
+    function isActuallySigned(msg) {
+      if (!msg.signature) return false;
+      if (Array.isArray(msg.signature)) {
+        if (msg.signature.length === 0) return false;
+        for (var i = 0; i < msg.signature.length; i++) {
+          var sig = msg.signature[i];
+          if (sig.dateValidation && sig.dateValidation !== "") return true;
+          if (sig.datevalidation && sig.datevalidation !== "") return true;
+        }
+        return false;
+      }
+      if (typeof msg.signature === 'object') {
+        if (msg.signature.dateValidation && msg.signature.dateValidation !== "") return true;
+        if (msg.signature.datevalidation && msg.signature.datevalidation !== "") return true;
+      }
+      return false;
+    }
+
+    function hasSignatureOption(msg) {
+      return msg.isSignatureDemandee === true;
+    }
+
+    function getSignature(msg) {
+      if (!msg.signature) return null;
+      if (Array.isArray(msg.signature) && msg.signature.length > 0) {
+        return msg.signature[0];
+      }
+      if (typeof msg.signature === 'object') {
+        return msg.signature;
+      }
+      return null;
+    }
+
+    function renderCarnet() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      contentDiv.innerHTML = '';
+
+      var correspondances = carnetData.correspondances || [];
+      
+      function highlightText(text, searchTerm) {
+        if (!searchTerm || searchTerm.trim() === "") return text;
+        var regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        return text.replace(regex, '<mark style="background:#FFD700;color:#1C1C2E;padding:0 2px;border-radius:4px;">$1</mark>');
+      }
+      
+      var html = '<div class="carnet-container">';
+      html += '<div class="search-bar" style="margin-bottom:20px;position:sticky;top:0;background:#0B0B1A;padding:12px 0;z-index:10;">';
+      html += '<div style="display:flex;gap:12px;align-items:center;background:#1C1C2E;border-radius:16px;padding:8px 16px;">';
+      html += '<span style="color:#8E8E93;">🔍</span>';
+      html += '<input type="text" id="carnetSearch" placeholder="Rechercher par expediteur, contenu ou date..." style="flex:1;background:transparent;border:none;color:white;font-size:15px;outline:none;">';
+      html += '<button id="clearSearch" style="background:#2C2C44;border:none;color:#8E8E93;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Effacer</button>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:8px;margin-top:8px;">';
+      html += '<button class="filter-btn" data-filter="all" style="background:#2C2C44;border:none;color:#5E5EFF;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Tous</button>';
+      html += '<button class="filter-btn" data-filter="unsigned" style="background:#2C2C44;border:none;color:#FFB340;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Non signes</button>';
+      html += '<button class="filter-btn" data-filter="signed" style="background:#2C2C44;border:none;color:#5E5EFF;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Signes</button>';
+      html += '</div>';
+      html += '</div>';
+      html += '<div id="carnetMessages"></div>';
+      html += '</div>';
+      
+      contentDiv.innerHTML = html;
+      
+      function renderMessages(filterText, filterType) {
+        var messagesDiv = document.getElementById('carnetMessages');
+        if (!messagesDiv) return;
+        
+        var filtered = correspondances.filter(function(msg) {
+          var auteur = msg.auteur || {};
+          var auteurName = ((auteur.nom || "") + " " + (auteur.prenom || "")).toLowerCase();
+          var content = (msg.contenu || "").toLowerCase();
+          var date = (msg.dateCreation || "").toLowerCase();
+          var searchLower = filterText.toLowerCase();
+          
+          var matchesSearch = filterText === "" || auteurName.indexOf(searchLower) !== -1 || content.indexOf(searchLower) !== -1 || date.indexOf(searchLower) !== -1;
+          
+          var isSigned = isActuallySigned(msg);
+          var matchesFilter = true;
+          if (filterType === "signed") matchesFilter = isSigned;
+          if (filterType === "unsigned") matchesFilter = hasSignatureOption(msg) && !isSigned;
+          
+          return matchesSearch && matchesFilter;
+        });
+        
+        if (filtered.length === 0) {
+          messagesDiv.innerHTML = '<div class="empty-state"><p>Aucun message trouve</p></div>';
+          return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < filtered.length; i++) {
+          var msg = filtered[i];
+          var date = msg.dateCreation || "";
+          var formattedDate = date.replace(/-/g, '/').substring(0, 16);
+          var isSigned = isActuallySigned(msg);
+          var hasOption = hasSignatureOption(msg);
+          var sig = getSignature(msg);
+          var auteur = msg.auteur || {};
+          var auteurName = (auteur.nom || "") + " " + (auteur.prenom || "");
+          var cleanContent = decodeContent(msg.contenu || "");
+          var hasAttachment = msg.urlFichier && msg.urlFichier !== "";
+          
+          var highlightedName = filterText ? highlightText(auteurName, filterText) : auteurName;
+          var highlightedContent = filterText ? highlightText(cleanContent, filterText) : cleanContent;
+          var highlightedDate = filterText ? highlightText(formattedDate, filterText) : formattedDate;
+          
+          var borderColor = '#2C2C44';
+          if (isSigned) {
+            borderColor = '#5E5EFF';
+          } else if (hasOption) {
+            borderColor = '#FFB340';
+          }
+          
+          html += '<div class="carnet-card" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid ' + borderColor + ';">';
+          html += '<div style="display:flex;justify-content:space-between;margin-bottom:12px;">';
+          html += '<div><strong style="color:#5E5EFF;">' + highlightedName + '</strong> <span style="color:#8E8E93;font-size:12px;">(' + (msg.type || "") + ')</span></div>';
+          html += '<div style="color:#8E8E93;font-size:12px;">' + highlightedDate + '</div>';
+          html += '</div>';
+          html += '<div style="color:#E0E0E0;font-size:14px;line-height:1.5;margin-bottom:12px;">' + highlightedContent + '</div>';
+          html += '<div style="margin-top:12px;">';
+          
+          if (isSigned && sig) {
+            var sigDate = sig.dateValidation || sig.datevalidation || "";
+            sigDate = sigDate.replace(/-/g, '/').substring(0, 16);
+            var sigName = (sig.nom || "") + " " + (sig.prenom || "");
+            var highlightedSigName = filterText ? highlightText(sigName, filterText) : sigName;
+            var highlightedSigDate = filterText ? highlightText(sigDate, filterText) : sigDate;
+            html += '<span style="color:#5E5EFF;font-size:12px;">✓ Signe par ' + highlightedSigName + ' le ' + highlightedSigDate + '</span>';
+          } else if (hasOption) {
+            html += '<span style="color:#FFB340;font-size:12px;">○ En attente de signature</span>';
+          }
+          
+          if (hasAttachment) {
+            html += '<button class="attachment-btn" data-file="' + msg.urlFichier + '" style="background:#2C2C44;border:none;color:#5E5EFF;padding:8px 16px;border-radius:10px;cursor:pointer;font-size:12px;margin-left:12px;">📎 Piece jointe</button>';
+          }
+          
+          html += '</div></div>';
+        }
+        
+        messagesDiv.innerHTML = html;
+        
+        var attachBtns = document.querySelectorAll('.attachment-btn');
+        for (var i = 0; i < attachBtns.length; i++) {
+          attachBtns[i].addEventListener('click', function(e) {
+            e.stopPropagation();
+            alert("Piece jointe disponible. Veuillez utiliser l'application Ecole Directe ou le site web pour y acceder.");
+          });
+        }
+      }
+      
+      var searchInput = document.getElementById('carnetSearch');
+      var clearBtn = document.getElementById('clearSearch');
+      var currentFilter = "all";
+      
+      function updateMessages() {
+        var searchText = searchInput ? searchInput.value : "";
+        renderMessages(searchText, currentFilter);
+      }
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', updateMessages);
+      }
+      
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+          if (searchInput) searchInput.value = "";
+          updateMessages();
+        });
+      }
+      
+      var filterBtns = document.querySelectorAll('.filter-btn');
+      for (var i = 0; i < filterBtns.length; i++) {
+        filterBtns[i].addEventListener('click', function() {
+          currentFilter = this.getAttribute('data-filter');
+          for (var j = 0; j < filterBtns.length; j++) {
+            filterBtns[j].style.opacity = "0.6";
+          }
+          this.style.opacity = "1";
+          updateMessages();
+        });
+        filterBtns[i].style.opacity = i === 0 ? "1" : "0.6";
+      }
+      
+      renderMessages("", "all");
+    }
+
+    function renderVieScolaire() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      contentDiv.innerHTML = '';
+
+      var absencesRetards = vieScolaireData.absencesRetards || [];
+      var sanctionsEncouragements = vieScolaireData.sanctionsEncouragements || [];
+      
+      var absences = absencesRetards.filter(function(item) { return item.typeElement === "Absence"; });
+      var retards = absencesRetards.filter(function(item) { return item.typeElement === "Retard"; });
+      var punitions = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Punition"; });
+      var encouragements = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Encouragement"; });
+
+      var html = '<div class="viescolaire-container">';
+
+      if (absences.length > 0) {
+        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+        html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">📅 Absences</h3>';
+        for (var i = 0; i < absences.length; i++) {
+          var a = absences[i];
+          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+          html += '<div><strong>' + a.displayDate + '</strong></div>';
+          html += '<div style="color:#8E8E93;font-size:13px;">' + a.libelle + '</div>';
+          html += '<div style="color:' + (a.justifie ? '#5E5EFF' : '#FFB340') + ';font-size:13px;">' + (a.justifie ? '✓ Justifiee' : '○ Non justifiee') + '</div>';
+          if (a.motif && a.motif !== "En attente de motif") {
+            html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + a.motif + '</div>';
+          }
+          if (a.commentaire && a.commentaire !== "") {
+            html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + a.commentaire.substring(0, 100) + (a.commentaire.length > 100 ? '...' : '') + '</div>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      if (retards.length > 0) {
+        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+        html += '<h3 style="color:#FFB340;margin-bottom:16px;">⏰ Retards</h3>';
+        for (var i = 0; i < retards.length; i++) {
+          var r = retards[i];
+          var isJustified = r.justifie === true;
+          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+          html += '<div style="display:flex;align-items:center;gap:8px;">';
+          html += '<strong>' + r.displayDate + '</strong>';
+          if (!isJustified) {
+            html += '<span style="color:#FF5E5E;font-size:14px;">⚠️</span>';
+          }
+          html += '</div>';
+          html += '<div style="color:#8E8E93;font-size:13px;">Duree: ' + r.libelle + '</div>';
+          html += '<div style="color:' + (isJustified ? '#5E5EFF' : '#FF5E5E') + ';font-size:13px;">' + (isJustified ? '✓ Justifie' : '⚠️ Non justifie') + '</div>';
+          if (r.motif && r.motif !== "En attente de motif") {
+            html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + r.motif + '</div>';
+          }
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      if (punitions.length > 0) {
+        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+        html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">⚠️ Punitions</h3>';
+        for (var i = 0; i < punitions.length; i++) {
+          var p = punitions[i];
+          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+          html += '<div><strong>' + p.libelle + '</strong> - ' + p.date + '</div>';
+          html += '<div style="color:#E0E0E0;font-size:13px;">Par: ' + p.par + '</div>';
+          if (p.motif) html += '<div style="color:#8E8E93;font-size:13px;">Motif: ' + p.motif + '</div>';
+          if (p.commentaire) html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + p.commentaire + '</div>';
+          if (p.dateDeroulement) html += '<div style="color:#5E5EFF;font-size:12px;margin-top:6px;">' + p.dateDeroulement + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      if (encouragements.length > 0) {
+        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+        html += '<h3 style="color:#5E5EFF;margin-bottom:16px;">🏆 Encouragements</h3>';
+        for (var i = 0; i < encouragements.length; i++) {
+          var e = encouragements[i];
+          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+          html += '<div><strong>' + e.libelle + '</strong> - ' + e.date + '</div>';
+          if (e.motif) html += '<div style="color:#E0E0E0;font-size:13px;">' + e.motif + '</div>';
+          if (e.commentaire) html += '<div style="color:#8E8E93;font-size:12px;">' + e.commentaire + '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      if (absences.length === 0 && retards.length === 0 && punitions.length === 0 && encouragements.length === 0) {
+        html += '<div class="empty-state"><p>Aucune information de vie scolaire</p></div>';
+      }
+
+      html += '</div>';
+      contentDiv.innerHTML = html;
+    }
+
+    function renderApiLog() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      
+      if (apiLogs.length === 0) {
+        contentDiv.innerHTML = '<div class="empty-state"><p>Aucun log API. Activez le debug dans les parametres.</p></div>';
+        return;
+      }
+      
+      var html = '<div style="background:#1C1C2E;border-radius:20px;padding:20px;">';
+      html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">📋 API Logs</h2>';
+      html += '<div style="overflow-x:auto;">';
+      html += '<table style="width:100%;border-collapse:collapse;">';
+      html += '<tr style="border-bottom:1px solid #2C2C44;">';
+      html += '<th style="text-align:left;padding:8px;color:#8E8E93;">Date</th>';
+      html += '<th style="text-align:left;padding:8px;color:#8E8E93;">API</th>';
+      html += '<th style="text-align:left;padding:8px;color:#8E8E93;">Status</th>';
+      html += '<th style="text-align:left;padding:8px;color:#8E8E93;">Duree</th>';
+      html += '</tr>';
+      
+      for (var i = 0; i < apiLogs.length; i++) {
+        var log = apiLogs[i];
+        var statusColor = log.responseCode === 200 ? '#5E5EFF' : '#FF5E5E';
+        html += '<tr style="border-bottom:1px solid #2C2C44;">';
+        html += '<td style="padding:8px;font-size:12px;color:#8E8E93;">' + log.timestamp + '</td>';
+        html += '<td style="padding:8px;font-size:12px;">' + (log.url.substring(0, 50) + (log.url.length > 50 ? '...' : '')) + '</td>';
+        html += '<td style="padding:8px;font-size:12px;color:' + statusColor + ';">' + log.responseCode + '</td>';
+        html += '<td style="padding:8px;font-size:12px;color:#8E8E93;">' + log.duration + '</td>';
+        html += '</tr>';
+      }
+      
+      html += '</table></div></div>';
+      contentDiv.innerHTML = html;
+    }
+
+    function renderSettings() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      
+      var html = '<div class="settings-container">';
+      html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
+      html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">Parametres</h2>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2C2C44;">';
+      html += '<div><strong style="color:white;">Mode Debug</strong><p style="color:#8E8E93;font-size:12px;margin-top:4px;">Activer les logs API</p></div>';
+      html += '<label style="position:relative;display:inline-block;width:50px;height:24px;">';
+      html += '<input type="checkbox" id="debugToggle" ' + (debugEnabled ? 'checked' : '') + ' style="opacity:0;width:0;height:0;">';
+      html += '<span style="position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#2C2C44;transition:0.3s;border-radius:24px;"></span>';
+      html += '<span style="position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background-color:white;transition:0.3s;border-radius:50%;' + (debugEnabled ? 'transform:translateX(26px);' : '') + '"></span>';
+      html += '</label></div>';
+      html += '<button id="viewApiLogsBtn" style="width:100%;margin-top:16px;background:#2C2C44;border:none;color:#5E5EFF;padding:12px;border-radius:12px;cursor:pointer;font-size:14px;">📋 Voir les logs API</button>';
+      html += '</div>';
+      html += '</div>';
+      
+      contentDiv.innerHTML = html;
+      
+      var debugToggle = document.getElementById('debugToggle');
+      if (debugToggle) {
+        debugToggle.addEventListener('change', function(e) {
+          debugEnabled = e.target.checked;
+          if (!debugEnabled) {
+            apiLogs.length = 0;
+          }
+        });
+      }
+      
+      var viewLogsBtn = document.getElementById('viewApiLogsBtn');
+      if (viewLogsBtn) {
+        viewLogsBtn.addEventListener('click', function() {
+          if (debugEnabled) {
+            renderApiLog();
+            var tabBtns = document.querySelectorAll('#ed-widget .tab-btn');
+            for (var i = 0; i < tabBtns.length; i++) {
+              tabBtns[i].classList.remove('active');
+            }
+            currentTab = "apilog";
+          } else {
+            alert("Activez le mode Debug d'abord dans les parametres");
+          }
         });
       }
     }
@@ -772,9 +1139,6 @@
         });
       }
     }
-
-    var currentSpaceId = null;
-    var currentPath = [];
 
     function showCloudExplorer(spaceId, spaceTitle) {
       currentSpaceId = spaceId;
@@ -910,14 +1274,22 @@
     }
 
     function renderContent() {
-      if (currentTab === "moyennes") {
+      if (currentTab === "home") {
+        renderHome();
+      } else if (currentTab === "moyennes") {
         renderMoyennes();
       } else if (currentTab === "devoirs") {
         renderDevoirs();
       } else if (currentTab === "espacetravail") {
         renderEspaceTravail();
-      } else {
-        renderHome();
+      } else if (currentTab === "carnet") {
+        renderCarnet();
+      } else if (currentTab === "viescolaire") {
+        renderVieScolaire();
+      } else if (currentTab === "apilog") {
+        renderApiLog();
+      } else if (currentTab === "settings") {
+        renderSettings();
       }
     }
 
@@ -926,7 +1298,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         #ed-widget { background-color: #0B0B1A; color: #FFFFFF; }
         .m-container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-        .tab-bar { display: flex; gap: 12px; margin-bottom: 24px; background: #1C1C2E; padding: 8px; border-radius: 16px; }
+        .tab-bar { display: flex; gap: 12px; margin-bottom: 24px; background: #1C1C2E; padding: 8px; border-radius: 16px; flex-wrap: wrap; }
         .tab-btn { flex: 1; padding: 14px; text-align: center; font-size: 16px; font-weight: 600; color: #8E8E93; background: transparent; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; }
         .tab-btn.active { background: #2C2C44; color: #5E5EFF; box-shadow: 0 2px 8px rgba(94, 94, 255, 0.2); }
         .selector-container { margin-bottom: 32px; }
@@ -950,7 +1322,7 @@
         .annual-label { font-size: 15px; color: #8E8E93; margin-bottom: 12px; letter-spacing: 0.5px; }
         .annual-value { font-size: 56px; font-weight: 800; background: linear-gradient(135deg, #FFFFFF 0%, #5E5EFF 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .annual-note-count { font-size: 13px; color: #8E8E93; margin-top: 12px; }
-        .home-hero { display: flex; flex-direction: row; background: #15152B; padding: 32px; border-radius: 24px; margin-bottom: 28px; align-items: flex-start; justify-content: space-between; min-height: 200px; }
+        .home-hero { display: flex; flex-direction: row; background: #15152B; padding: 32px; border-radius: 24px; margin-bottom: 28px; align-items: flex-start; justify-content: space-between; min-height: 200px; flex-wrap: wrap; gap: 20px; }
         .hero-copy { max-width: 500px; }
         .eyebrow { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: #5E5EFF; margin-bottom: 8px; }
         .title-container { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
@@ -963,7 +1335,6 @@
           75% { color: #FF9D5C; text-shadow: 0 0 4px rgba(255, 157, 92, 0.4); }
           100% { color: #FF6B9D; text-shadow: 0 0 4px rgba(255, 107, 157, 0.4); }
         }
-        .home-hero p { color: #B3B3D2; line-height: 1.7; }
         .hero-card { max-width: 320px; width: 320px; background: radial-gradient(circle at top left, rgba(94,94,255,0.2), transparent 45%), linear-gradient(180deg, rgba(31, 31, 57, 0.95), #111123); border: 1px solid rgba(94,94,255,0.22); border-radius: 28px; padding: 28px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18); display: grid; gap: 18px; height: fit-content; flex-shrink: 0; }
         .hero-stats { display: flex; flex-direction: column; justify-content: center; color: #E5E5FF; gap: 10px; }
         .hero-stats span { color: #8E8E93; font-size: 13px; text-transform: uppercase; letter-spacing: 0.12em; }
@@ -979,8 +1350,10 @@
         .task-badge { font-size: 11px; text-transform: uppercase; padding: 6px 10px; border-radius: 999px; background: rgba(94,94,255,0.12); color: #5E5EFF; }
         .empty-state { text-align: center; padding: 60px 20px; background: #1C1C2E; border-radius: 24px; }
         .empty-state p { color: #8E8E93; font-size: 17px; }
-        .date-pill:hover { background: #2C2C44 !important; }
-        @media (max-width: 768px) { .m-container { padding: 16px; } .subjects-grid { grid-template-columns: 1fr; } .stat-value { font-size: 36px; } .annual-value { font-size: 44px; } }
+        .date-pill:hover { background: #2C2C44 !important; cursor: pointer; }
+        .carnet-card { transition: transform 0.2s ease; }
+        .carnet-card:hover { transform: scale(1.01); }
+        @media (max-width: 768px) { .m-container { padding: 16px; } .subjects-grid { grid-template-columns: 1fr; } .stat-value { font-size: 36px; } .annual-value { font-size: 44px; } .tab-bar { gap: 6px; } .tab-btn { padding: 10px; font-size: 12px; } }
       </style>
       <div class="m-container">
         <div class="tab-bar">
@@ -988,6 +1361,9 @@
           <button class="tab-btn" data-tab="moyennes">Notes</button>
           <button class="tab-btn" data-tab="devoirs">Devoirs</button>
           <button class="tab-btn" data-tab="espacetravail">Espace travail</button>
+          <button class="tab-btn" data-tab="carnet">Carnet</button>
+          <button class="tab-btn" data-tab="viescolaire">Vie scolaire</button>
+          <button class="tab-btn" data-tab="settings">Parametres</button>
         </div>
         <div id="ed-content"></div>
       </div>
@@ -1016,7 +1392,13 @@
       var button = document.querySelector('#ed-widget .tab-btn[data-tab="' + tab + '"]');
       if (button) button.classList.add('active');
       var trimesterSelector = document.querySelector('#ed-widget .selector-container');
-      if (trimesterSelector) trimesterSelector.style.display = tab === "moyennes" ? 'block' : 'none';
+      if (trimesterSelector) {
+        if (tab === "moyennes") {
+          trimesterSelector.style.display = 'block';
+        } else {
+          trimesterSelector.style.display = 'none';
+        }
+      }
       renderContent();
     }
 
@@ -1057,7 +1439,9 @@
           triButtons[j].classList.remove('active');
         }
         this.classList.add('active');
-        renderMoyennes();
+        if (currentTab === "moyennes") {
+          renderMoyennes();
+        }
       });
     }
 
@@ -1075,6 +1459,9 @@
     
     var loadingElement = document.getElementById('ed-loading');
     if (loadingElement) loadingElement.remove();
+    
+    var placeholderElement = document.getElementById('ed-widget-placeholder');
+    if (placeholderElement) placeholderElement.remove();
     
     completion("Erreur: " + (error.message || "Erreur inconnue"));
   }
