@@ -996,101 +996,118 @@ function formatDifference(diff) {
     }
 
     function renderVieScolaire() {
-      var contentDiv = document.getElementById('ed-content');
-      if (!contentDiv) return;
-      contentDiv.innerHTML = '';
+  var contentDiv = document.getElementById('ed-content');
+  if (!contentDiv) return;
+  contentDiv.innerHTML = '';
 
-      var absencesRetards = vieScolaireData.absencesRetards || [];
-      var sanctionsEncouragements = vieScolaireData.sanctionsEncouragements || [];
-      
-      var absences = absencesRetards.filter(function(item) { return item.typeElement === "Absence"; });
-      var retards = absencesRetards.filter(function(item) { return item.typeElement === "Retard"; });
-      var punitions = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Punition"; });
-      var encouragements = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Encouragement"; });
+  var absencesRetards = vieScolaireData.absencesRetards || [];
+  var sanctionsEncouragements = vieScolaireData.sanctionsEncouragements || [];
 
-      var html = '<div class="viescolaire-container">';
+  var absences = absencesRetards.filter(function(item) { return item.typeElement === "Absence"; });
+  var retards = absencesRetards.filter(function(item) { return item.typeElement === "Retard"; });
+  var repas = absencesRetards.filter(function(item) { return item.typeElement === "Repas"; });
+  var punitions = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Punition"; });
+  var encouragements = sanctionsEncouragements.filter(function(item) { return item.typeElement === "Encouragement"; });
 
-      if (absences.length > 0) {
-        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-        html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">📅 Absences</h3>';
-        for (var i = 0; i < absences.length; i++) {
-          var a = absences[i];
-          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
-          html += '<div><strong>' + a.displayDate + '</strong></div>';
-          html += '<div style="color:#8E8E93;font-size:13px;">' + a.libelle + '</div>';
-          html += '<div style="color:' + (a.justifie ? '#5E5EFF' : '#FFB340') + ';font-size:13px;">' + (a.justifie ? '✓ Justifiee' : '○ Non justifiee') + '</div>';
-          if (a.motif && a.motif !== "En attente de motif") {
-            html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + a.motif + '</div>';
-          }
-          if (a.commentaire && a.commentaire !== "") {
-            html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + a.commentaire.substring(0, 100) + (a.commentaire.length > 100 ? '...' : '') + '</div>';
-          }
-          html += '</div>';
-        }
-        html += '</div>';
+  var html = '<div class="viescolaire-container">';
+
+  if (absences.length > 0) {
+    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+    html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">Absences</h3>';
+    for (var i = 0; i < absences.length; i++) {
+      var a = absences[i];
+      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+      html += '<div><strong>' + a.displayDate + '</strong></div>';
+      html += '<div style="color:#8E8E93;font-size:13px;">' + a.libelle + '</div>';
+      html += '<div style="color:' + (a.justifie ? '#5E5EFF' : '#FFB340') + ';font-size:13px;">' + (a.justifie ? '✓ Justifiee' : '○ Non justifiee') + '</div>';
+      if (a.motif && a.motif !== "En attente de motif") {
+        html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + a.motif + '</div>';
       }
-
-      if (retards.length > 0) {
-        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-        html += '<h3 style="color:#FFB340;margin-bottom:16px;">⏰ Retards</h3>';
-        for (var i = 0; i < retards.length; i++) {
-          var r = retards[i];
-          var isJustified = r.justifie === true;
-          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
-          html += '<div style="display:flex;align-items:center;gap:8px;">';
-          html += '<strong>' + r.displayDate + '</strong>';
-          if (!isJustified) {
-            html += '<span style="color:#FF5E5E;font-size:14px;">⚠️</span>';
-          }
-          html += '</div>';
-          html += '<div style="color:#8E8E93;font-size:13px;">Duree: ' + r.libelle + '</div>';
-          html += '<div style="color:' + (isJustified ? '#5E5EFF' : '#FF5E5E') + ';font-size:13px;">' + (isJustified ? '✓ Justifie' : '⚠️ Non justifie') + '</div>';
-          if (r.motif && r.motif !== "En attente de motif") {
-            html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + r.motif + '</div>';
-          }
-          html += '</div>';
-        }
-        html += '</div>';
+      if (a.commentaire && a.commentaire !== "") {
+        html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + a.commentaire.substring(0, 100) + (a.commentaire.length > 100 ? '...' : '') + '</div>';
       }
-
-      if (punitions.length > 0) {
-        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-        html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">⚠️ Punitions</h3>';
-        for (var i = 0; i < punitions.length; i++) {
-          var p = punitions[i];
-          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
-          html += '<div><strong>' + p.libelle + '</strong> - ' + p.date + '</div>';
-          html += '<div style="color:#E0E0E0;font-size:13px;">Par: ' + p.par + '</div>';
-          if (p.motif) html += '<div style="color:#8E8E93;font-size:13px;">Motif: ' + p.motif + '</div>';
-          if (p.commentaire) html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + p.commentaire + '</div>';
-          if (p.dateDeroulement) html += '<div style="color:#5E5EFF;font-size:12px;margin-top:6px;">' + p.dateDeroulement + '</div>';
-          html += '</div>';
-        }
-        html += '</div>';
-      }
-
-      if (encouragements.length > 0) {
-        html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-        html += '<h3 style="color:#5E5EFF;margin-bottom:16px;">🏆 Encouragements</h3>';
-        for (var i = 0; i < encouragements.length; i++) {
-          var e = encouragements[i];
-          html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
-          html += '<div><strong>' + e.libelle + '</strong> - ' + e.date + '</div>';
-          if (e.motif) html += '<div style="color:#E0E0E0;font-size:13px;">' + e.motif + '</div>';
-          if (e.commentaire) html += '<div style="color:#8E8E93;font-size:12px;">' + e.commentaire + '</div>';
-          html += '</div>';
-        }
-        html += '</div>';
-      }
-
-      if (absences.length === 0 && retards.length === 0 && punitions.length === 0 && encouragements.length === 0) {
-        html += '<div class="empty-state"><p>Aucune information de vie scolaire</p></div>';
-      }
-
       html += '</div>';
-      contentDiv.innerHTML = html;
     }
+    html += '</div>';
+  }
 
+  if (retards.length > 0) {
+    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+    html += '<h3 style="color:#FFB340;margin-bottom:16px;">Retards</h3>';
+    for (var i = 0; i < retards.length; i++) {
+      var r = retards[i];
+      var isJustified = r.justifie === true;
+      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+      html += '<div style="display:flex;align-items:center;gap:8px;">';
+      html += '<strong>' + r.displayDate + '</strong>';
+      if (!isJustified) {
+        html += '<span style="color:#FF5E5E;font-size:14px;">⚠️</span>';
+      }
+      html += '</div>';
+      html += '<div style="color:#8E8E93;font-size:13px;">Duree: ' + r.libelle + '</div>';
+      html += '<div style="color:' + (isJustified ? '#5E5EFF' : '#FF5E5E') + ';font-size:13px;">' + (isJustified ? '✓ Justifie' : '⚠️ Non justifie') + '</div>';
+      if (r.motif && r.motif !== "En attente de motif") {
+        html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + r.motif + '</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  if (repas.length > 0) {
+    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+    html += '<h3 style="color:#FFB340;margin-bottom:16px;">Absences cantine</h3>';
+    for (var i = 0; i < repas.length; i++) {
+      var rp = repas[i];
+      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+      html += '<div><strong>' + rp.displayDate + '</strong></div>';
+      html += '<div style="color:#8E8E93;font-size:13px;">' + rp.libelle + '</div>';
+      html += '<div style="color:#FFB340;font-size:13px;">○ Absent</div>';
+      if (rp.commentaire && rp.commentaire !== "") {
+        html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + rp.commentaire.substring(0, 100) + (rp.commentaire.length > 100 ? '...' : '') + '</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  if (punitions.length > 0) {
+    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+    html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">⚠️ Punitions</h3>';
+    for (var i = 0; i < punitions.length; i++) {
+      var p = punitions[i];
+      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+      html += '<div><strong>' + p.libelle + '</strong> - ' + p.date + '</div>';
+      html += '<div style="color:#E0E0E0;font-size:13px;">Par: ' + p.par + '</div>';
+      if (p.motif) html += '<div style="color:#8E8E93;font-size:13px;">Motif: ' + p.motif + '</div>';
+      if (p.commentaire) html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + p.commentaire + '</div>';
+      if (p.dateDeroulement) html += '<div style="color:#5E5EFF;font-size:12px;margin-top:6px;">' + p.dateDeroulement + '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  if (encouragements.length > 0) {
+    html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
+    html += '<h3 style="color:#5E5EFF;margin-bottom:16px;">Encouragements</h3>';
+    for (var i = 0; i < encouragements.length; i++) {
+      var e = encouragements[i];
+      html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
+      html += '<div><strong>' + e.libelle + '</strong> - ' + e.date + '</div>';
+      if (e.motif) html += '<div style="color:#E0E0E0;font-size:13px;">' + e.motif + '</div>';
+      if (e.commentaire) html += '<div style="color:#8E8E93;font-size:12px;">' + e.commentaire + '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  if (absences.length === 0 && retards.length === 0 && repas.length === 0 && punitions.length === 0 && encouragements.length === 0) {
+    html += '<div class="empty-state"><p>Aucune information de vie scolaire</p></div>';
+  }
+
+  html += '</div>';
+  contentDiv.innerHTML = html;
+}
     function renderApiLog() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
