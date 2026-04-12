@@ -2,6 +2,8 @@
 //https://github.com/NotANumber-dev/ecoledirecte-
 (async () => {
   try {
+document.documentElement.innerHTML = '';
+document.body.style.backgroundColor = '#000000';
     var credentials = JSON.parse(sessionStorage.getItem("credentials"));
     var token = credentials.payload.authToken;
     var accounts = JSON.parse(sessionStorage.getItem("accounts"));
