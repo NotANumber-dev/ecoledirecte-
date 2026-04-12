@@ -5,7 +5,13 @@
     var accounts = JSON.parse(sessionStorage.getItem("accounts"));
     var id = accounts.payload.accounts[0].id;
 
-    function fetchWithTimeout(url, options, timeout = 3000) {
+    var placeholderWidget = document.createElement('div');
+    placeholderWidget.id = 'ed-widget';
+    placeholderWidget.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#0B0B1A;z-index:999999;overflow:auto;color:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;';
+    placeholderWidget.innerHTML = '<div class="m-container" style="padding:24px;"><div style="font-size:18px;color:#FFFFFF;">Chargement...</div></div>';
+    document.body.appendChild(placeholderWidget);
+
+    function fetchWithTimeout(url, options, timeout = 5000) {
       return Promise.race([
         fetch(url, options),
         new Promise((_, reject) =>
@@ -16,45 +22,54 @@
 
     console.log('Démarrage ultra-rapide pour test...');
 
-    // ========== APPELS API ==========
-    
-    // Fetch notes
-    var notesRes = await fetch(`https://api.ecoledirecte.com/v3/eleves/${id}/notes.awp?verbe=get&v=6.17.0`, {
+    var notesPromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/notes.awp?verbe=get&v=6.17.0`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "X-Token": token
       },
       body: "data=" + encodeURIComponent(JSON.stringify({ anneeScolaire: "" }))
+    }, 5000).then(function(res) {
+      return res.ok ? res.json() : { data: { notes: [] } };
+    }).catch(function() {
+      return { data: { notes: [] } };
     });
-    var notesJson = await notesRes.json();
-    var data = notesJson.data;
-    
-    // Fetch devoirs (cahier de texte)
-    var devoirsRes = await fetch(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte.awp?verbe=get&v=4.98.0`, {
+
+    var devoirsPromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte.awp?verbe=get&v=4.98.0`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
         "X-Token": token
       },
       body: "data=" + encodeURIComponent(JSON.stringify({}))
+    }, 5000).then(function(res) {
+      return res.ok ? res.json() : { data: {} };
+    }).catch(function() {
+      return { data: {} };
     });
-    var devoirsJson = await devoirsRes.json();
+
+    var espacePromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/E/${id}/espacestravail.awp?verbe=get&typeModule=espaceTravail&v=4.98.0`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Token": token
+      },
+      body: "data=" + encodeURIComponent(JSON.stringify({}))
+    }, 5000).then(function(res) {
+      return res.ok ? res.json() : { data: [] };
+    }).catch(function() {
+      return { data: [] };
+    });
+
+    var results = await Promise.all([notesPromise, devoirsPromise, espacePromise]);
+    var notesJson = results[0];
+    var devoirsJson = results[1];
+    var espaceJson = results[2];
+    var data = notesJson.data || {};
+    var originalNotes = data.notes || [];
     var cahierData = devoirsJson.data || {};
-    
-    // Fetch espace travail
-    var espaceRes = await fetch(`https://api.ecoledirecte.com/v3/E/${id}/espacestravail.awp?verbe=get&typeModule=espaceTravail&v=4.98.0`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-Token": token
-      },
-      body: "data=" + encodeURIComponent(JSON.stringify({}))
-    });
-    var espaceJson = await espaceRes.json();
     var espaceData = espaceJson.data || [];
-    
-    // ========== FIN APPELS API ==========
+
 
     var loadingWidget = document.createElement('div');
     loadingWidget.id = 'ed-loading';
@@ -116,31 +131,7 @@
     var dayDetailsCache = {};
     var previousView = null;
 
-    widget.innerHTML = `
-      <div class="m-container">
-        <div class="tab-bar">
-          <button class="tab-btn active" data-tab="home">Accueil</button>
-          <button class="tab-btn" data-tab="moyennes">Notes</button>
-          <button class="tab-btn" data-tab="devoirs">Devoirs</button>
-          <button class="tab-btn" data-tab="espacetravail">Espace travail</button>
-        </div>
-        <div id="ed-content">
-          <div class="home-hero">
-            <div class="hero-copy">
-              <div class="eyebrow">Accueil</div>
-              <div class="title-container">
-                <h1>EcoleDirecte</h1>
-                <span class="dash-animated">-</span>
-              </div>
-            </div>
-            <div class="hero-card">
-              <div class="hero-stats"><span>Chargement...</span><strong>...</strong></div>
-              <div class="hero-stats"><span>Moyenne générale</span><strong>...</strong></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+
 
     document.body.appendChild(widget);
 
@@ -155,10 +146,86 @@
 
     currentTrimester = chooseDefaultTrimester();
 
+    function getEncouragementMessage(average) {
+      if (average === null || isNaN(average)) return "Prêt à commencer l'année ! 💪";
+
+      var messages = [];
+
+      if (average >= 0 && average < 5) {
+        messages = [
+          "Chaque début compte, commence petit ! 🌱",
+          "Un pas à la fois, tu vas y arriver ! 👟",
+          "C'est le moment de s'y mettre ! 🚀"
+        ];
+      } else if (average >= 5 && average < 8) {
+        messages = [
+          "Allez on s'y met, travaille dur ! 💪",
+          "Le succès vient à ceux qui persistent ! 💪",
+          "Chaque effort compte, continue ! 📈"
+        ];
+      } else if (average >= 8 && average < 10) {
+        messages = [
+          "Tu progresses, continue comme ça ! 📈",
+          "Petit à petit, l'oiseau fait son nid ! 🐦",
+          "Les progrès sont là, garde le cap ! 🎯"
+        ];
+      } else if (average >= 10 && average < 11) {
+        messages = [
+          "Pas mal, continue, tu peux le faire ! 👍",
+          "Tu es sur la bonne voie ! 👌",
+          "Continue tes efforts, ça paye ! 💰"
+        ];
+      } else if (average >= 11 && average < 13) {
+        messages = [
+          "Bien joué, garde le rythme ! 🔥",
+          "Tu es en train de prendre de l'élan ! ⚡",
+          "Continue comme ça, tu avances ! 🚀"
+        ];
+      } else if (average >= 13 && average < 15) {
+        messages = [
+          "🤫, C'est bien ! Continue ! 😎",
+          "Tu es dans le game ! 🎮",
+          "Excellent travail, poursuis ! ⭐"
+        ];
+      } else if (average >= 15 && average < 17) {
+        messages = [
+          "Excellent travail ! Tu es sur la bonne voie ! ⭐",
+          "Tu es impressionnant ! 🌟",
+          "Continue, tu es fait pour réussir ! 🏆"
+        ];
+      } else if (average >= 17 && average < 18.5) {
+        messages = [
+          "Waouh, tu es incroyable ! 🏆",
+          "Tu es un champion ! 👑",
+          "Bravo, tu es au top ! 🎖️"
+        ];
+      } else if (average >= 18.5 && average < 20) {
+        messages = [
+          "Va t'amuser, tu es le GOAT ! 🐐",
+          "Tu es une légende ! 🏅",
+          "Félicitations, tu es exceptionnel ! 🎉"
+        ];
+      } else if (average === 20) {
+        messages = [
+          "FAAAAAAAAAH, Sigma ! 🤫🗿",
+          "Parfait ! Tu es le maître ! 👑",
+          "20/20, tu es invincible ! ⚔️"
+        ];
+      }
+
+      if (messages.length > 0) {
+        return messages[Math.floor(Math.random() * messages.length)];
+      }
+
+      return "Continue tes efforts ! 📚";
+    }
+
     function getGradeColor(avg) {
-      if (avg >= 12) return '#5E5EFF';
-      if (avg >= 10) return '#FFB340';
-      return '#FF5E5E';
+      if (avg === null || isNaN(avg)) return '#8E8E93';
+      if (avg < 10) return '#FF6B6B';
+      if (avg < 12) return '#FFB340';
+      if (avg < 14) return '#5E5EFF';
+      return '#40D9A4';
     }
 
     function formatDate(dateStr) {
@@ -319,6 +386,7 @@
     function renderHome() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
+      contentDiv.innerHTML = '';
 
       var currentTrim = trimesters[currentTrimester];
       var subjects = Object.keys(currentTrim.subjects).map(function(subject) {
@@ -355,6 +423,7 @@
       html += '<h1>EcoleDirecte</h1>';
       html += '<span class="dash-animated">-</span>';
       html += '</div>';
+      html += '<p style="color:#B3B3D2;margin-top:12px;font-size:16px;font-weight:500;">' + getEncouragementMessage(currentTrimAvg) + '</p>';
       html += '</div>';
       html += '<div class="hero-card">';
       html += '<div class="hero-stats"><span>Devoirs à faire</span><strong>' + homeworkCount + '</strong></div>';
@@ -377,6 +446,10 @@
     }
 
     function renderMoyennes() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      contentDiv.innerHTML = '';
+
       var triData = trimesters[currentTrimester];
       var subjectsList = [];
       var totalWeighted = 0;
@@ -429,7 +502,7 @@
         for (var i = 0; i < subjectsList.length; i++) {
           var sub = subjectsList[i];
           var gradeColor = getGradeColor(sub.average);
-          html += '<div class="subject-card">';
+          html += '<div class="subject-card" data-subject="' + sub.name.replace(/'/g, "\\'") + '" style="cursor:pointer;">';
           html += '<div class="subject-header">';
           html += '<span class="subject-name">' + sub.name + '</span>';
           html += '<span class="subject-average" style="color:' + gradeColor + ';">' + sub.average.toFixed(2) + '</span>';
@@ -452,11 +525,89 @@
       }
 
       contentDiv.innerHTML = html;
+
+      var subjectCards = contentDiv.querySelectorAll('.subject-card[data-subject]');
+      for (var i = 0; i < subjectCards.length; i++) {
+        subjectCards[i].addEventListener('click', function() {
+          var subjectName = this.getAttribute('data-subject');
+          showSubjectGrades(subjectName);
+        });
+      }
+    }
+
+    function showSubjectGrades(subjectName) {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+
+      previousView = 'moyennes';
+
+      var subjectGrades = originalNotes.filter(function(note) {
+        return note.libelleMatiere === subjectName && note.codePeriode === currentTrimester;
+      });
+
+      if (subjectGrades.length === 0) {
+        subjectGrades = originalNotes.filter(function(note) {
+          return note.libelleMatiere === subjectName;
+        });
+        if (subjectGrades.length > 0) {
+          var trimesterDisplay = 'Toutes les périodes';
+        }
+      } else {
+        var trimesterDisplay = trimesters[currentTrimester].name;
+      }
+
+      var html = '<div style="margin-bottom:20px;">';
+      html += '<button id="back-to-moyennes" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour aux moyennes</button>';
+      html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
+      html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + subjectName + '</h2>';
+      html += '<p style="color:#8E8E93;margin-bottom:24px;">' + trimesterDisplay + '</p>';
+      html += '</div>';
+
+      if (subjectGrades.length === 0) {
+        html += '<div class="empty-state"><p>Aucune note trouvée pour cette matière</p></div>';
+      } else {
+        html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
+        for (var i = 0; i < subjectGrades.length; i++) {
+          var grade = subjectGrades[i];
+          var gradeValue = grade.valeur;
+          var gradeColor = getGradeColor(parseFloat(gradeValue.replace(',', '.')));
+          var dateStr = grade.date || grade.dateSaisie;
+          var formattedDate = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR') : 'Date inconnue';
+          var commentaire = grade.commentaire || '';
+          var decodedComment = decodeContent(commentaire);
+
+          html += '<div style="padding:16px 20px;border-bottom:1px solid #2C2C44;display:flex;justify-content:space-between;align-items:center;">';
+          html += '<div>';
+          html += '<div style="font-size:16px;font-weight:600;color:#FFFFFF;margin-bottom:4px;">' + gradeValue + '/20</div>';
+          html += '<div style="font-size:12px;color:#8E8E93;">' + formattedDate + '</div>';
+          if (decodedComment) {
+            html += '<div style="font-size:13px;color:#B3B3D2;margin-top:8px;max-width:400px;">' + decodedComment + '</div>';
+          }
+          html += '</div>';
+          html += '<div style="text-align:right;">';
+          html += '<div style="font-size:24px;font-weight:700;color:' + gradeColor + ';">' + gradeValue + '</div>';
+          html += '<div style="font-size:11px;color:#8E8E93;margin-top:4px;">Coeff. ' + (grade.coef || 1) + '</div>';
+          html += '</div>';
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      html += '</div>';
+      contentDiv.innerHTML = html;
+
+      var backButton = document.getElementById('back-to-moyennes');
+      if (backButton) {
+        backButton.addEventListener('click', function() {
+          renderMoyennes();
+        });
+      }
     }
 
     function renderDevoirs() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
+      contentDiv.innerHTML = '';
 
       var dates = Object.keys(cahierData).sort();
       var hasTasks = false;
@@ -546,6 +697,7 @@
     function renderEspaceTravail() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
+      contentDiv.innerHTML = '';
 
       if (!espaceData || espaceData.length === 0) {
         contentDiv.innerHTML = '<div class="empty-state"><p>Aucun espace de travail disponible</p></div>';
@@ -842,6 +994,15 @@
     `;
 
     document.body.appendChild(widget);
+
+    var erudaScript = document.createElement('script');
+    erudaScript.src = '//cdn.jsdelivr.net/npm/eruda';
+    erudaScript.onload = function() {
+      if (window.eruda) {
+        window.eruda.init();
+      }
+    };
+    document.body.appendChild(erudaScript);
 
     window.goBack = goBack;
     window.navigateToFolder = navigateToFolder;
