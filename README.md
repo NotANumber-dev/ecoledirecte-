@@ -16,7 +16,7 @@ Executer le raccourci dans la feuille de partage du site ecoledirecte dans safar
 ### Raccourcis
 Prod: https://www.icloud.com/shortcuts/5f87176a78174bf2ac59325f663b2207 (jsdelivr, 24h update)
 <br>
-Debug: https://www.icloud.com/shortcuts/64c50d88d96e42c5af2514e2fc0014f4 (raw github API, rate limits)
+Beta/dev: https://www.icloud.com/shortcuts/64c50d88d96e42c5af2514e2fc0014f4 (raw github API, rate limits)
 ## Changelog
 ### V1.2 (current)
  - Carnet de correspondance
