@@ -1,5 +1,9 @@
-//👋salut
-//https://github.com/NotANumber-dev/ecoledirecte-
+/* ================================================
+   EcoleDirecte -
+   👋 Salut
+   https://github.com/NotANumber-dev/ecoledirecte-
+================================================ */
+
 (async () => {
   try {
 document.documentElement.innerHTML = '';
