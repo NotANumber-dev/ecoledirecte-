@@ -1,3 +1,8 @@
+<div align="center">
+<img src="icon.png" height="100px"/>
+<h1 align="center">EcoleDirecte -</h1>
+</div>
+ 
 V1.1 (current)
  - espaces de travail (fichiers uniquement)
  - devoirs affichées correctement
