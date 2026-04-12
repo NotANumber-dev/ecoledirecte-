@@ -4,6 +4,8 @@
 <h3 align="center">EcoleDirecte 500x mieux | Raccourci iPhone/iPad/iMac/Mac/MacMini
 </div>
 
+## INFO
+ Ne fonctione UNIQUEMENT sur un compte ecoledirecte éleve
 ## Fonctionnalités
 
 - Notes + moyenne (par matière + moyenne gé)
