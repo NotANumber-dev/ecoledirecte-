@@ -64,7 +64,7 @@
     addApiButton('Carnet de correspondance', `https://api.ecoledirecte.com/v3/eleves/${id}/eleveCarnetCorrespondance.awp?verbe=get&v=4.98.0`, {});
     addApiButton('Vie scolaire', `https://api.ecoledirecte.com/v3/eleves/${id}/viescolaire.awp?verbe=get&v=4.98.0`, {});
     addApiButton('Messages (Messagerie)', `https://api.ecoledirecte.com/v3/eleves/${id}/messages.awp?verbe=get&v=4.98.0`, {});
-    addApiButton('Timeline', `https://api.ecoledirecte.com/v3/eleves/${id}/timeline.awp?verbe=get&v=4.98.0`. {});
+    addApiButton('Timeline', `https://api.ecoledirecte.com/v3/eleves/${id}/timeline.awp?verbe=get&v=4.98.0`, {});
     completion("Debug panel ready");
     
   } catch (error) {
