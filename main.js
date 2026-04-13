@@ -1401,201 +1401,318 @@ window.goBack = function() {
       contentDiv.innerHTML = html;
     }
 
-    function renderMessagerie() {
-      var contentDiv = document.getElementById('ed-content');
-      if (!contentDiv) return;
-      contentDiv.innerHTML = '';
-      var received = messagesData.messages?.received || [];
-      var sent = messagesData.messages?.sent || [];
-      var draft = messagesData.messages?.draft || [];
-      var archived = messagesData.messages?.archived || [];
-      var currentFolder = "received";
-      var searchTerm = "";
-      function decodeBase64Content(str) {
-        if (!str) return "";
-        try {
-          var base64Decoded = atob(str);
-          var bytes = [];
-          for (var i = 0; i < base64Decoded.length; i++) {
-            bytes.push(base64Decoded.charCodeAt(i) & 0xFF);
-          }
-          var decoder = new TextDecoder('utf-8');
-          var decoded = decoder.decode(new Uint8Array(bytes));
-          var tempDiv = document.createElement('div');
-          tempDiv.innerHTML = decoded;
-          return tempDiv.textContent || tempDiv.innerText || decoded;
-        } catch(e) {
-          return str;
+function renderMessagerie() {
+  var contentDiv = document.getElementById('ed-content');
+  if (!contentDiv) return;
+  contentDiv.innerHTML = '';
+  
+  var received = messagesData.messages?.received || [];
+  var sent = messagesData.messages?.sent || [];
+  var draft = messagesData.messages?.draft || [];
+  var archived = messagesData.messages?.archived || [];
+  
+  var currentFolder = "received";
+  var searchTerm = "";
+  var currentPage = 1;
+  var messagesPerPage = 20;
+  var allMessagesFetched = false;
+  
+  if (received.length <= 20 && !allMessagesFetched) {
+    contentDiv.innerHTML = '<div style="color:#8E8E93;text-align:center;padding:40px;">Chargement de tous les messages...</div>';
+    
+    fetch(`https://api.ecoledirecte.com/v3/eleves/${id}/messages.awp?force=false&typeRecuperation=received&idClasseur=0&orderBy=date&order=desc&query=&onlyRead=&page=0&itemsPerPage=1000&getAll=0&verbe=get&v=4.98.0`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Token": token
+      },
+      body: "data=" + encodeURIComponent(JSON.stringify({}))
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(json) {
+      if (json.code === 200 && json.data && json.data.messages) {
+        received = json.data.messages.received || [];
+        sent = json.data.messages.sent || [];
+        draft = json.data.messages.draft || [];
+        archived = json.data.messages.archived || [];
+        messagesData.messages = json.data.messages;
+        allMessagesFetched = true;
+        buildMessagerieUI();
+      }
+    })
+    .catch(function(err) {
+      buildMessagerieUI();
+    });
+  } else {
+    buildMessagerieUI();
+  }
+  
+  function buildMessagerieUI() {
+    function decodeBase64Content(str) {
+      if (!str) return "";
+      try {
+        var base64Decoded = atob(str);
+        var bytes = [];
+        for (var i = 0; i < base64Decoded.length; i++) {
+          bytes.push(base64Decoded.charCodeAt(i) & 0xFF);
         }
+        var decoder = new TextDecoder('utf-8');
+        var decoded = decoder.decode(new Uint8Array(bytes));
+        var tempDiv = document.createElement('div');
+        tempDiv.innerHTML = decoded;
+        return tempDiv.textContent || tempDiv.innerText || decoded;
+      } catch(e) {
+        return str;
       }
-      function getMessagesByFolder() {
-        if (currentFolder === "received") return received.slice().reverse();
-        if (currentFolder === "sent") return sent.slice().reverse();
-        if (currentFolder === "draft") return draft.slice().reverse();
-        if (currentFolder === "archived") return archived.slice().reverse();
-        return [];
-      }
-      function showMessageDetail(messageId) {
-        var detailDiv = document.getElementById('messageDetail');
-        if (!detailDiv) return;
-        detailDiv.innerHTML = '<div style="color:#8E8E93;text-align:center;padding:20px;">Chargement...</div>';
-        fetch(`https://api.ecoledirecte.com/v3/eleves/${id}/messages/${messageId}.awp?verbe=get&mode=destinataire&v=4.98.0`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Token": token
-          },
-          body: "data=" + encodeURIComponent(JSON.stringify({}))
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(json) {
-          var msg = json.data;
-          if (!msg) {
-            detailDiv.innerHTML = '<div style="color:#FF5E5E;text-align:center;padding:20px;">Message non trouvé</div>';
-            return;
-          }
-          var contactName = "";
-          if (currentFolder === "received" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
-          if (currentFolder === "sent" && msg.to && msg.to.length > 0) contactName = (msg.to[0].nom || "") + " " + (msg.to[0].prenom || "");
-          if (currentFolder === "draft") contactName = "Brouillon";
-          if (currentFolder === "archived" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
-          var date = msg.date || "";
-          var formattedDate = date.replace(/-/g, '/').substring(0, 16);
-          var cleanContent = decodeBase64Content(msg.content || "");
-          var subject = msg.subject || "(Sans objet)";
-          var hasAttachment = msg.files && msg.files.length > 0;
-          var html = '<div style="background:#1C1C2E;border-radius:20px;padding:24px;">';
-          html += '<div style="display:flex;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;">';
-          html += '<div><strong style="color:#5E5EFF;font-size:18px;">' + contactName + '</strong></div>';
-          html += '<div style="color:#8E8E93;">' + formattedDate + '</div>';
-          html += '</div>';
-          html += '<div style="font-size:20px;font-weight:700;color:white;margin-bottom:20px;">' + subject + '</div>';
-          html += '<div style="color:#E0E0E0;line-height:1.6;background:transparent;">' + cleanContent + '</div>';
-          if (hasAttachment) {
-            html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #2C2C44;">';
-            html += '<span style="color:#8E8E93;">Pièces jointes:</span>';
-            for (var i = 0; i < msg.files.length; i++) {
-              html += '<div style="color:#5E5EFF;margin-top:8px;">📎 ' + msg.files[i].libelle + '</div>';
-            }
-            html += '</div>';
-          }
-          html += '</div>';
-          detailDiv.innerHTML = html;
-        })
-        .catch(function(err) {
-          detailDiv.innerHTML = '<div style="color:#FF5E5E;text-align:center;padding:20px;">Erreur: ' + err.message + '</div>';
-        });
-      }
-      function renderMessages() {
-        var messages = getMessagesByFolder();
-        var filtered = messages.filter(function(msg) {
-          if (searchTerm === "") return true;
-          var contactName = "";
-          if (currentFolder === "received" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
-          if (currentFolder === "sent" && msg.to && msg.to.length > 0) contactName = (msg.to[0].nom || "") + " " + (msg.to[0].prenom || "");
-          if (currentFolder === "draft") contactName = "Brouillon";
-          if (currentFolder === "archived" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
-          var subject = msg.subject || "";
-          var searchLower = searchTerm.toLowerCase();
-          return contactName.toLowerCase().indexOf(searchLower) !== -1 || subject.toLowerCase().indexOf(searchLower) !== -1;
-        });
-        var listDiv = document.getElementById('messageList');
-        if (!listDiv) return;
-        if (filtered.length === 0) {
-          listDiv.innerHTML = '<div style="color:#8E8E93;text-align:center;padding:40px;">Aucun message</div>';
+    }
+    
+    function getMessagesByFolder() {
+      var messages = [];
+      if (currentFolder === "received") messages = received.slice();
+      if (currentFolder === "sent") messages = sent.slice();
+      if (currentFolder === "draft") messages = draft.slice();
+      if (currentFolder === "archived") messages = archived.slice();
+      
+      messages.sort(function(a, b) {
+        var dateA = new Date(a.date || 0);
+        var dateB = new Date(b.date || 0);
+        return dateB - dateA;
+      });
+      
+      return messages;
+    }
+    
+    function showMessageDetail(messageId) {
+      var detailDiv = document.getElementById('messageDetail');
+      if (!detailDiv) return;
+      detailDiv.innerHTML = '<div style="color:#8E8E93;text-align:center;padding:20px;">Chargement...</div>';
+      
+      fetch(`https://api.ecoledirecte.com/v3/eleves/${id}/messages/${messageId}.awp?verbe=get&mode=destinataire&v=4.98.0`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-Token": token
+        },
+        body: "data=" + encodeURIComponent(JSON.stringify({}))
+      })
+      .then(function(res) { return res.json(); })
+      .then(function(json) {
+        var msg = json.data;
+        if (!msg) {
+          detailDiv.innerHTML = '<div style="color:#FF5E5E;text-align:center;padding:20px;">Message non trouvé</div>';
           return;
         }
-        var html = '';
-        for (var i = 0; i < filtered.length; i++) {
-          var msg = filtered[i];
-          var contactName = "";
-          if (currentFolder === "received" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
-          if (currentFolder === "sent" && msg.to && msg.to.length > 0) contactName = (msg.to[0].nom || "") + " " + (msg.to[0].prenom || "");
-          if (currentFolder === "draft") contactName = "Brouillon";
-          if (currentFolder === "archived" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
-          var date = msg.date || "";
-          var formattedDate = date.replace(/-/g, '/').substring(0, 16);
-          var subject = msg.subject || "(Sans objet)";
-          var isRead = msg.read === true;
-          var hasAttachment = msg.files && msg.files.length > 0;
-          html += '<div class="message-item" data-id="' + msg.id + '" style="background:#1C1C2E;border-radius:12px;padding:16px;margin-bottom:12px;border-left:4px solid ' + (isRead ? '#2C2C44' : '#5E5EFF') + ';cursor:pointer;">';
-          html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
-          html += '<div><strong style="color:#5E5EFF;">' + contactName + '</strong></div>';
-          html += '<div style="color:#8E8E93;font-size:11px;">' + formattedDate + '</div>';
-          html += '</div>';
-          html += '<div style="font-weight:600;color:white;margin-bottom:6px;">' + subject + '</div>';
-          if (hasAttachment) {
-            html += '<div style="color:#5E5EFF;font-size:11px;">📎 ' + msg.files.length + ' piece(s) jointe(s)</div>';
+        
+        var contactName = "";
+        if (currentFolder === "received" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
+        if (currentFolder === "sent" && msg.to && msg.to.length > 0) contactName = (msg.to[0].nom || "") + " " + (msg.to[0].prenom || "");
+        if (currentFolder === "draft") contactName = "Brouillon";
+        if (currentFolder === "archived" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
+        
+        var date = msg.date || "";
+        var formattedDate = date.replace(/-/g, '/').substring(0, 16);
+        var cleanContent = decodeBase64Content(msg.content || "");
+        var subject = msg.subject || "(Sans objet)";
+        var hasAttachment = msg.files && msg.files.length > 0;
+        
+        var html = '<div style="background:#1C1C2E;border-radius:20px;padding:24px;">';
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;">';
+        html += '<div><strong style="color:#5E5EFF;font-size:18px;">' + contactName + '</strong></div>';
+        html += '<div style="color:#8E8E93;">' + formattedDate + '</div>';
+        html += '</div>';
+        html += '<div style="font-size:20px;font-weight:700;color:white;margin-bottom:20px;">' + subject + '</div>';
+        html += '<div style="color:#E0E0E0;line-height:1.6;background:transparent;">' + cleanContent + '</div>';
+        
+        if (hasAttachment) {
+          html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #2C2C44;">';
+          html += '<span style="color:#8E8E93;">Pièces jointes:</span>';
+          for (var i = 0; i < msg.files.length; i++) {
+            html += '<div style="color:#5E5EFF;margin-top:8px;">📎 ' + msg.files[i].libelle + '</div>';
           }
           html += '</div>';
         }
-        listDiv.innerHTML = html;
-        var messageItems = document.querySelectorAll('.message-item');
-        for (var i = 0; i < messageItems.length; i++) {
-          messageItems[i].addEventListener('click', function() {
-            var msgId = this.getAttribute('data-id');
-            showMessageDetail(msgId);
-          });
-        }
+        
+        html += '</div>';
+        detailDiv.innerHTML = html;
+      })
+      .catch(function(err) {
+        detailDiv.innerHTML = '<div style="color:#FF5E5E;text-align:center;padding:20px;">Erreur: ' + err.message + '</div>';
+      });
+    }
+    
+    function renderMessages() {
+      var allMessages = getMessagesByFolder();
+      
+      var filtered = allMessages.filter(function(msg) {
+        if (searchTerm === "") return true;
+        var contactName = "";
+        if (currentFolder === "received" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
+        if (currentFolder === "sent" && msg.to && msg.to.length > 0) contactName = (msg.to[0].nom || "") + " " + (msg.to[0].prenom || "");
+        if (currentFolder === "draft") contactName = "Brouillon";
+        if (currentFolder === "archived" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
+        var subject = msg.subject || "";
+        var searchLower = searchTerm.toLowerCase();
+        return contactName.toLowerCase().indexOf(searchLower) !== -1 || subject.toLowerCase().indexOf(searchLower) !== -1;
+      });
+      
+      var totalPages = Math.ceil(filtered.length / messagesPerPage);
+      var startIndex = (currentPage - 1) * messagesPerPage;
+      var endIndex = Math.min(startIndex + messagesPerPage, filtered.length);
+      var pageMessages = filtered.slice(startIndex, endIndex);
+      
+      var listDiv = document.getElementById('messageList');
+      if (!listDiv) return;
+      
+      if (filtered.length === 0) {
+        listDiv.innerHTML = '<div style="color:#8E8E93;text-align:center;padding:40px;">Aucun message</div>';
+        return;
       }
-      function refreshUI() {
-        renderMessages();
-        var folderBtns = document.querySelectorAll('.folder-btn');
-        for (var i = 0; i < folderBtns.length; i++) {
-          if (folderBtns[i].getAttribute('data-folder') === currentFolder) {
-            folderBtns[i].classList.add('active');
+      
+      var html = '<div style="margin-bottom:12px;color:#8E8E93;font-size:12px;">' + filtered.length + ' message(s) trouvé(s)</div>';
+      
+      for (var i = 0; i < pageMessages.length; i++) {
+        var msg = pageMessages[i];
+        var contactName = "";
+        if (currentFolder === "received" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
+        if (currentFolder === "sent" && msg.to && msg.to.length > 0) contactName = (msg.to[0].nom || "") + " " + (msg.to[0].prenom || "");
+        if (currentFolder === "draft") contactName = "Brouillon";
+        if (currentFolder === "archived" && msg.from) contactName = (msg.from.nom || "") + " " + (msg.from.prenom || "");
+        var date = msg.date || "";
+        var formattedDate = date.replace(/-/g, '/').substring(0, 16);
+        var subject = msg.subject || "(Sans objet)";
+        var isRead = msg.read === true;
+        var hasAttachment = msg.files && msg.files.length > 0;
+        
+        html += '<div class="message-item" data-id="' + msg.id + '" style="background:#1C1C2E;border-radius:12px;padding:16px;margin-bottom:12px;border-left:4px solid ' + (isRead ? '#2C2C44' : '#5E5EFF') + ';cursor:pointer;">';
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:8px;">';
+        html += '<div><strong style="color:#5E5EFF;">' + contactName + '</strong></div>';
+        html += '<div style="color:#8E8E93;font-size:11px;">' + formattedDate + '</div>';
+        html += '</div>';
+        html += '<div style="font-weight:600;color:white;margin-bottom:6px;">' + subject + '</div>';
+        if (hasAttachment) {
+          html += '<div style="color:#5E5EFF;font-size:11px;">📎 ' + msg.files.length + ' piece(s) jointe(s)</div>';
+        }
+        html += '</div>';
+      }
+      
+      if (totalPages > 1) {
+        html += '<div style="display:flex;justify-content:center;gap:8px;margin-top:20px;padding:16px;flex-wrap:wrap;">';
+        
+        if (currentPage > 1) {
+          html += '<button class="page-btn" data-page="1" style="background:#2C2C44;border:none;color:white;padding:8px 12px;border-radius:8px;cursor:pointer;">«</button>';
+          html += '<button class="page-btn" data-page="' + (currentPage - 1) + '" style="background:#2C2C44;border:none;color:white;padding:8px 12px;border-radius:8px;cursor:pointer;">←</button>';
+        }
+        
+        var startPage = Math.max(1, currentPage - 2);
+        var endPage = Math.min(totalPages, currentPage + 2);
+        
+        for (var p = startPage; p <= endPage; p++) {
+          if (p === currentPage) {
+            html += '<span style="background:#5E5EFF;color:white;padding:8px 12px;border-radius:8px;">' + p + '</span>';
           } else {
-            folderBtns[i].classList.remove('active');
+            html += '<button class="page-btn" data-page="' + p + '" style="background:#2C2C44;border:none;color:white;padding:8px 12px;border-radius:8px;cursor:pointer;">' + p + '</button>';
           }
         }
+        
+        if (currentPage < totalPages) {
+          html += '<button class="page-btn" data-page="' + (currentPage + 1) + '" style="background:#2C2C44;border:none;color:white;padding:8px 12px;border-radius:8px;cursor:pointer;">→</button>';
+          html += '<button class="page-btn" data-page="' + totalPages + '" style="background:#2C2C44;border:none;color:white;padding:8px 12px;border-radius:8px;cursor:pointer;">»</button>';
+        }
+        
+        html += '</div>';
       }
-      var html = '<div style="max-width:1400px;margin:0 auto;">';
-      html += '<div style="margin-bottom:24px;">';
-      html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">';
-      html += '<button class="folder-btn" data-folder="received" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Reçus (' + received.length + ')</button>';
-      html += '<button class="folder-btn" data-folder="sent" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Envoyés (' + sent.length + ')</button>';
-      html += '<button class="folder-btn" data-folder="draft" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;"> Brouillons (' + draft.length + ')</button>';
-      html += '<button class="folder-btn" data-folder="archived" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;"> Archive (' + archived.length + ')</button>';
-      html += '</div>';
-      html += '<div style="background:#1C1C2E;border-radius:12px;padding:10px 16px;display:flex;gap:12px;align-items:center;">';
-      html += '<span style="color:#8E8E93;">🔍</span>';
-      html += '<input type="text" id="searchInput" placeholder="Rechercher par expéditeur ou sujet..." style="flex:1;background:transparent;border:none;color:white;font-size:14px;outline:none;">';
-      html += '<button id="clearSearch" style="background:#2C2C44;border:none;color:#8E8E93;padding:6px 12px;border-radius:8px;cursor:pointer;">Effacer</button>';
-      html += '</div>';
-      html += '</div>';
-      html += '<div style="display:flex;gap:24px;">';
-      html += '<div id="messageList" style="flex:1;"></div>';
-      html += '<div id="messageDetail" style="flex:1;min-width:400px;"></div>';
-      html += '</div></div>';
-      contentDiv.innerHTML = html;
+      
+      listDiv.innerHTML = html;
+      
+      var messageItems = document.querySelectorAll('.message-item');
+      for (var i = 0; i < messageItems.length; i++) {
+        messageItems[i].addEventListener('click', function() {
+          var msgId = this.getAttribute('data-id');
+          showMessageDetail(msgId);
+        });
+      }
+      
+      var pageBtns = document.querySelectorAll('.page-btn');
+      for (var i = 0; i < pageBtns.length; i++) {
+        pageBtns[i].addEventListener('click', function() {
+          currentPage = parseInt(this.getAttribute('data-page'));
+          renderMessages();
+          var container = document.getElementById('messageList');
+          if (container) container.scrollTop = 0;
+        });
+      }
+    }
+    
+    function refreshUI() {
+      currentPage = 1;
+      renderMessages();
       var folderBtns = document.querySelectorAll('.folder-btn');
       for (var i = 0; i < folderBtns.length; i++) {
-        folderBtns[i].addEventListener('click', function() {
-          currentFolder = this.getAttribute('data-folder');
-          searchTerm = "";
-          var searchInput = document.getElementById('searchInput');
-          if (searchInput) searchInput.value = "";
-          refreshUI();
-        });
+        if (folderBtns[i].getAttribute('data-folder') === currentFolder) {
+          folderBtns[i].style.background = '#5E5EFF';
+          folderBtns[i].style.color = 'white';
+        } else {
+          folderBtns[i].style.background = '#2C2C44';
+          folderBtns[i].style.color = 'white';
+        }
       }
-      var searchInput = document.getElementById('searchInput');
-      if (searchInput) {
-        searchInput.addEventListener('input', function(e) {
-          searchTerm = e.target.value;
-          renderMessages();
-        });
-      }
-      var clearBtn = document.getElementById('clearSearch');
-      if (clearBtn) {
-        clearBtn.addEventListener('click', function() {
-          searchTerm = "";
-          var searchInput = document.getElementById('searchInput');
-          if (searchInput) searchInput.value = "";
-          renderMessages();
-        });
-      }
-      refreshUI();
     }
+    
+    var html = '<div style="max-width:1400px;margin:0 auto;">';
+    html += '<div style="margin-bottom:24px;">';
+    html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">';
+    html += '<button class="folder-btn" data-folder="received" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Reçus (' + received.length + ')</button>';
+    html += '<button class="folder-btn" data-folder="sent" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Envoyés (' + sent.length + ')</button>';
+    html += '<button class="folder-btn" data-folder="draft" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Brouillons (' + draft.length + ')</button>';
+    html += '<button class="folder-btn" data-folder="archived" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Archive (' + archived.length + ')</button>';
+    html += '</div>';
+    html += '<div style="background:#1C1C2E;border-radius:12px;padding:10px 16px;display:flex;gap:12px;align-items:center;">';
+    html += '<span style="color:#8E8E93;">🔍</span>';
+    html += '<input type="text" id="searchInput" placeholder="Rechercher par expéditeur ou sujet..." style="flex:1;background:transparent;border:none;color:white;font-size:14px;outline:none;">';
+    html += '<button id="clearSearch" style="background:#2C2C44;border:none;color:#8E8E93;padding:6px 12px;border-radius:8px;cursor:pointer;">Effacer</button>';
+    html += '</div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:24px;">';
+    html += '<div id="messageList" style="flex:1;max-height:600px;overflow-y:auto;"></div>';
+    html += '<div id="messageDetail" style="flex:1;min-width:400px;"></div>';
+    html += '</div></div>';
+    
+    contentDiv.innerHTML = html;
+    
+    var folderBtns = document.querySelectorAll('.folder-btn');
+    for (var i = 0; i < folderBtns.length; i++) {
+      folderBtns[i].addEventListener('click', function() {
+        currentFolder = this.getAttribute('data-folder');
+        searchTerm = "";
+        var searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = "";
+        refreshUI();
+      });
+    }
+    
+    var searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e) {
+        searchTerm = e.target.value;
+        currentPage = 1;
+        renderMessages();
+      });
+    }
+    
+    var clearBtn = document.getElementById('clearSearch');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', function() {
+        searchTerm = "";
+        var searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = "";
+        currentPage = 1;
+        renderMessages();
+      });
+    }
+    
+    refreshUI();
+  }
+}
 
     function renderApiLog() {
       var contentDiv = document.getElementById('ed-content');
