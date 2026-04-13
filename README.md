@@ -9,10 +9,9 @@
  
 > [!warning]
 > Ce projet n'est PAS affilié avec Aplim ou/et EcoleDirecte
-
-
-> [!warning]
-> si il y a une fork de ce repo, VERIFIER le contenu de celui-ci avant de l'executer.
+> <hr>
+> 
+> VERIFIER Le contenu de tout fork de ce repo avant de l'executer.
 ## Fonctionnalités
 
 - Notes + moyenne (par matière + moyenne gé)
