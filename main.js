@@ -1484,7 +1484,9 @@ function renderMessagerie() {
     if (!detailDiv) return;
     detailDiv.innerHTML = '<div style="color:#8E8E93;text-align:center;padding:20px;">Chargement...</div>';
     
-    var mode = currentFolder === "sent" ? "expediteur" : (currentFolder === "draft" ? "brouillon" : (currentFolder === "archived" ? "archives" : "destinataire"));
+  var mode = "destinataire";
+  if (currentFolder === "sent") mode = "expediteur";
+  else if (currentFolder === "draft") mode = "brouillon";
     
     fetch(`https://api.ecoledirecte.com/v3/eleves/${id}/messages/${messageId}.awp?verbe=get&mode=${mode}&v=4.98.0`, {
       method: "POST",
