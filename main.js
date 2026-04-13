@@ -862,7 +862,7 @@ window.goBack = function() {
       html += '<div class="eyebrow">Accueil</div>';
       html += '<div class="title-container">';
       html += '<h1>EcoleDirecte</h1>';
-      html += '<span class="dash-animated">-</span>';
+      html += '<span class="dash-animated">—</span>';
       html += '</div>';
       html += '<p style="color:#B3B3D2;margin-top:12px;font-size:16px;font-weight:500;">' + getEncouragementMessage(currentTrimAvg) + '</p>';
       html += '</div>';
