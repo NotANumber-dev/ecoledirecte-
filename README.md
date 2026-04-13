@@ -49,9 +49,22 @@ Debug panel: https://www.icloud.com/shortcuts/b51d6ab0ad4048588a5ddc57356e919f (
  - moyennes générale par matière/trimestre/année (calcule avec les coefitients, comparé a l'application mobile parent)
  - devoirs (les caractères speciaux comme é è ´ sonts affichées corectement. & ne s'affiche pas correctement)
 
+## securité
+• Votre token d'authentification ne quitte JAMAIS votre navigateur
+
+• Aucune donnée n'est envoyée à un serveur externe
+
+• Tous les appels API vont directement à api.ecoledirecte.com
+
+• Vos informations d'identification ne sont stockées que dans sessionStorage
+
+• Cette superposition fonctionne 100 % localement dans votre navigateur
+
 ## Requetes web
 [raccourci]
 https://raw.githubusercontent.com/NotANumber-dev/ecoledirecte-/refs/heads/main/main.js
+
+
 OU
 
 https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/main.js
