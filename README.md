@@ -11,7 +11,7 @@
 > Ce projet n'est PAS affilié avec Aplim ou/et EcoleDirecte
 > <hr>
 > 
-> VERIFIER Le contenu de tout fork de ce repo avant de l'executer.
+> VERIFIER Le contenu de tout fork de ce repo avant de l'executer. Un script malveillant pourrait envoyer des messages à tes profs, et agir en ton compte
 ## Fonctionnalités
 
 - Notes + moyenne (par matière + moyenne gé)
