@@ -1,5 +1,6 @@
 /* =================================================
-   EcoleDirecte API debug panel
+   EcoleDirecte - 
+   API debug panel
    👋 Salut!
    https://github.com/NotANumber-dev/ecoledirecte-
 ================================================= */
