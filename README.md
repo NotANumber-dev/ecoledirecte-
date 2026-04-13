@@ -37,44 +37,30 @@ Prod: https://www.icloud.com/shortcuts/86a80da0d32943a0b261cb3cf2e86eb0 (jsdeliv
 Beta/dev: https://www.icloud.com/shortcuts/d3de9061a50a4327a6395e16ce5bd3ac (raw github API, rate limits)
 <br>
 Debug panel: https://www.icloud.com/shortcuts/b51d6ab0ad4048588a5ddc57356e919f (raw github API, rate limits)
-## Changelog
-### V1.3 (current)
- - Messages
- - Timeline
-### V1.2
- - Carnet de correspondance
- - Vie scolaire
- - Mode debug
-### V1.1
- - espaces de travail (fichiers uniquement)
- - devoirs affichées correctement
-### V1.0
- - moyennes générale par matière/trimestre/année (calcule avec les coefitients, comparé a l'application mobile parent)
- - devoirs (les caractères speciaux comme é è ´ sonts affichées corectement. & ne s'affiche pas correctement)
 
-## securité
-• Votre token d'authentification ne quitte JAMAIS votre navigateur
+## Sécurité/Confidentialité
 
-• Aucune donnée n'est envoyée à un serveur externe
+- Votre token d'authentification ne quitte JAMAIS votre navigateur
+- Aucune donnée n'est envoyée à un serveur externe
+- Tous les appels API vont directement à api.ecoledirecte.com
+- Vos informations d'identification ne sont stockées que dans sessionStorage (non persistent)
+- Cette superposition fonctionne 100 % localement dans votre navigateur
 
-• Tous les appels API vont directement à api.ecoledirecte.com
+Toujours pas convaincu ? Regarde le code (main.js) et/ou les requêtes effectuées
 
-• Vos informations d'identification ne sont stockées que dans sessionStorage
+## Requêtes
 
-• Cette superposition fonctionne 100 % localement dans votre navigateur
+Voila TOUTES les requêtes effectuées durant l'éxécution du raccourci (vérifiable dans le code):
 
+**Raccourci** :
 
-toujours pas sur? verifie le code (Main.js)
-## Requetes web
-[raccourci]
-https://raw.githubusercontent.com/NotANumber-dev/ecoledirecte-/refs/heads/main/main.js
-
-
+https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/main.js (Release)
+<br>
 OU
+<br>
+https://raw.githubusercontent.com/NotANumber-dev/ecoledirecte-/refs/heads/main/main.js (Beta/dev)
 
-https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/main.js
-
-[code]
+**Code** :
 
 POST https://api.ecoledirecte.com/v3/eleves/${id}/notes.awp?verbe=get&v=6.17.0
 
@@ -95,6 +81,21 @@ POST https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte.awp?verbe=put&v=
 POST https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte/${dateKey}.awp?verbe=get&v=4.98.0
 
 POST https://api.ecoledirecte.com/v3/eleves/${id}/messages/${messageId}.awp?verbe=get&mode=destinataire&v=4.98.0
+
+## Changelog
+### V1.3 (current)
+ - Messages
+ - Timeline
+### V1.2
+ - Carnet de correspondance
+ - Vie scolaire
+ - Mode debug
+### V1.1
+ - espaces de travail (fichiers uniquement)
+ - devoirs affichées correctement
+### V1.0
+ - moyennes générale par matière/trimestre/année (calcule avec les coefitients, comparé a l'application mobile parent)
+ - devoirs (les caractères speciaux comme é è ´ sonts affichées corectement. & ne s'affiche pas correctement)
 
 ## License
 Apache 2.0
