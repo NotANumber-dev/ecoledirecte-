@@ -343,71 +343,391 @@
       }
     }
 
-    window.markHomework = function(devoirId, isDone, btn) {
-      if (isUpdating) {
-        alert("Veuillez patienter...");
-        return;
+window.markHomework = function(devoirId, isDone, btn) {
+  if (isUpdating) {
+    alert("Veuillez patienter...");
+    return;
+  }
+  isUpdating = true;
+  var originalText = btn.textContent;
+  var taskDiv = btn.closest('.task-block') || btn.closest('.task-card');
+  var statusSpan = taskDiv ? taskDiv.querySelector('.task-status') : null;
+  
+  btn.textContent = "...";
+  btn.disabled = true;
+  
+  var bodyObj = isDone ? 
+    { idDevoirsEffectues: [devoirId], idDevoirsNonEffectues: [] } : 
+    { idDevoirsEffectues: [], idDevoirsNonEffectues: [devoirId] };
+    
+  var formData = new URLSearchParams();
+  formData.append("data", JSON.stringify(bodyObj));
+  
+  fetch(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte.awp?verbe=put&v=4.98.0`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Token": token
+    },
+    body: formData.toString()
+  })
+  .then(res => res.json())
+  .then(json => {
+    isUpdating = false;
+    
+    if (json.code === 200) {
+      btn.setAttribute('data-done', isDone ? 'true' : 'false');
+      
+      if (statusSpan) {
+        statusSpan.textContent = isDone ? "FAIT" : "A FAIRE";
+        statusSpan.style.color = isDone ? "#5E5EFF" : "#FFB340";
       }
-      isUpdating = true;
-      var originalText = btn.textContent;
-      var taskDiv = btn.closest('.task-block');
-      var statusSpan = taskDiv ? taskDiv.querySelector('.task-status') : null;
-      btn.textContent = "...";
-      btn.disabled = true;
-      var bodyObj;
-      if (isDone) {
-        bodyObj = { idDevoirsEffectues: [devoirId], idDevoirsNonEffectues: [] };
-      } else {
-        bodyObj = { idDevoirsEffectues: [], idDevoirsNonEffectues: [devoirId] };
+      
+      btn.textContent = isDone ? "Non fait" : "Fait";
+      btn.disabled = false;
+      
+      if (taskDiv) {
+        taskDiv.style.borderLeftColor = isDone ? '#5E5EFF' : '#FFB340';
       }
-      var formData = new URLSearchParams();
-      formData.append("data", JSON.stringify(bodyObj));
-      fetch(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte.awp?verbe=put&v=4.98.0`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "X-Token": token
-        },
-        body: formData.toString()
-      })
-      .then(function(res) { return res.json(); })
-      .then(function(json) {
-        isUpdating = false;
-        btn.textContent = originalText;
-        btn.disabled = false;
-        if (json.code === 200) {
-          if (statusSpan) {
-            if (isDone) {
-              statusSpan.textContent = "FAIT";
-              statusSpan.style.color = "#5E5EFF";
-              btn.textContent = "Non fait";
-            } else {
-              statusSpan.textContent = "A FAIRE";
-              statusSpan.style.color = "#FFB340";
-              btn.textContent = "Fait";
+      
+      for (var dateKey in cahierData) {
+        var tasks = cahierData[dateKey];
+        for (var i = 0; i < tasks.length; i++) {
+          var task = tasks[i];
+          var taskId = task.idDevoir || task.id;
+          if (taskId === devoirId) {
+            task.effectue = isDone;
+            
+            if (dayDetailsCache[dateKey]) {
+              for (var j = 0; j < dayDetailsCache[dateKey].length; j++) {
+                var cachedTask = dayDetailsCache[dateKey][j];
+                var cachedId = cachedTask.idDevoir || cachedTask.id;
+                if (cachedId === devoirId) {
+                  cachedTask.effectue = isDone;
+                  break;
+                }
+              }
+            }
+            break;
+          }
+        }
+      }
+      
+      var currentDatePill = document.querySelector('#ed-content .date-pill');
+      if (currentDatePill) {
+        var viewDate = currentDatePill.getAttribute('data-date');
+        if (viewDate && dayDetailsCache[viewDate]) {
+          for (var i = 0; i < dayDetailsCache[viewDate].length; i++) {
+            var cachedTask = dayDetailsCache[viewDate][i];
+            var cachedId = cachedTask.idDevoir || cachedTask.id;
+            if (cachedId === devoirId) {
+              cachedTask.effectue = isDone;
+              break;
             }
           }
-        } else {
-          alert("Erreur: " + json.message);
         }
-      })
-      .catch(function(err) {
-        isUpdating = false;
-        btn.textContent = originalText;
-        btn.disabled = false;
-        alert("Erreur: " + err.message);
-      });
-    };
+      }
+      
+      if (currentTab === 'devoirs') {
+        var visibleTasks = document.querySelectorAll('.task-card');
+        for (var i = 0; i < visibleTasks.length; i++) {
+          var card = visibleTasks[i];
+          var cardBtn = card.querySelector('.mark-homework-btn');
+          if (cardBtn) {
+            var btnId = parseInt(cardBtn.getAttribute('data-id'));
+            if (btnId === devoirId) {
+              var cardStatus = card.querySelector('.task-status');
+              if (cardStatus) {
+                cardStatus.textContent = isDone ? "FAIT" : "A FAIRE";
+                cardStatus.style.color = isDone ? "#5E5EFF" : "#FFB340";
+              }
+              card.style.borderLeftColor = isDone ? '#5E5EFF' : '#FFB340';
+              cardBtn.setAttribute('data-done', isDone ? 'true' : 'false');
+              cardBtn.textContent = isDone ? 'Non fait' : 'Fait';
+              break;
+            }
+          }
+        }
+      }
+      
+      if (currentTab === 'home') {
+        renderHome();
+      }
+    } else {
+      btn.textContent = originalText;
+      btn.disabled = false;
+      alert("Erreur: " + json.message);
+    }
+  })
+  .catch(err => {
+    isUpdating = false;
+    btn.textContent = originalText;
+    btn.disabled = false;
+    alert("Erreur: " + err.message);
+  });
+};
 
-    function goBack() {
-      if (previousView === 'devoirs') {
-        renderDevoirs();
-      } else if (previousView === 'moyennes') {
-        renderMoyennes();
-      } else {
-        renderDevoirs();
+async function showDayDetails(dateKey) {
+  var contentDiv = document.getElementById('ed-content');
+  if (!contentDiv) return;
+  previousView = currentTab;
+  
+  var cachedTasks = dayDetailsCache[dateKey];
+  if (cachedTasks) {
+    for (var i = 0; i < cachedTasks.length; i++) {
+      var cachedTask = cachedTasks[i];
+      var taskId = cachedTask.idDevoir || cachedTask.id;
+      
+      if (cahierData[dateKey]) {
+        for (var j = 0; j < cahierData[dateKey].length; j++) {
+          var sourceTask = cahierData[dateKey][j];
+          var sourceId = sourceTask.idDevoir || sourceTask.id;
+          if (sourceId === taskId) {
+            cachedTask.effectue = sourceTask.effectue;
+            break;
+          }
+        }
       }
     }
+    renderDayDetailsView(dateKey, cachedTasks);
+    return;
+  }
+  
+  contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
+  
+  try {
+    var startTime = Date.now();
+    var res = await fetch(`https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte/${dateKey}.awp?verbe=get&v=4.98.0`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Token": token
+      },
+      body: "data=" + encodeURIComponent(JSON.stringify({}))
+    });
+    var duration = Date.now() - startTime;
+    logApiCall(`Cahier texte ${dateKey}`, res.status, duration);
+    var json = await res.json();
+    var matieres = json.data.matieres || [];
+    var tasks = [];
+    
+    for (var i = 0; i < matieres.length; i++) {
+      if (matieres[i].aFaire) {
+        var task = matieres[i].aFaire;
+        task.matiere = matieres[i].matiere;
+        task.codeMatiere = matieres[i].codeMatiere;
+        task.interrogation = matieres[i].interrogation || false;
+        
+        if (cahierData[dateKey]) {
+          for (var j = 0; j < cahierData[dateKey].length; j++) {
+            var sourceTask = cahierData[dateKey][j];
+            var sourceId = sourceTask.idDevoir || sourceTask.id;
+            var taskId = task.idDevoir || task.id;
+            if (sourceId === taskId) {
+              task.effectue = sourceTask.effectue;
+              break;
+            }
+          }
+        }
+        
+        tasks.push(task);
+      }
+    }
+    
+    dayDetailsCache[dateKey] = tasks;
+    renderDayDetailsView(dateKey, tasks);
+  } catch(e) {
+    contentDiv.innerHTML = '<div class="empty-state"><p>Erreur: ' + e.message + '</p><button style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-top:20px;" onclick="window.goBack()">← Retour</button></div>';
+  }
+}
+
+function renderDevoirs() {
+  var contentDiv = document.getElementById('ed-content');
+  if (!contentDiv) return;
+  contentDiv.innerHTML = '';
+  var dates = Object.keys(cahierData).sort();
+  var hasTasks = false;
+  var html = '<div class="devoirs-container">';
+  
+  for (var d = 0; d < dates.length; d++) {
+    var dateKey = dates[d];
+    var devoirs = cahierData[dateKey];
+    var formatted = formatDate(dateKey);
+    var notDoneTasks = [];
+    var doneTasks = [];
+    
+    for (var i = 0; i < devoirs.length; i++) {
+      if (devoirs[i].effectue === false) {
+        notDoneTasks.push(devoirs[i]);
+      } else {
+        doneTasks.push(devoirs[i]);
+      }
+    }
+    
+    var allTasks = notDoneTasks.concat(doneTasks);
+    if (allTasks.length > 0) {
+      hasTasks = true;
+      html += '<div style="margin-bottom:20px;">';
+      html += '<div class="date-pill" data-date="' + dateKey + '" style="background:#1C1C2E;border-radius:20px;padding:14px 20px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">';
+      html += '<div><span style="font-weight:700;color:#5E5EFF;font-size:18px;">' + formatted.dayName + '</span><span style="color:#8E8E93;margin-left:12px;font-size:14px;">' + formatted.date + '</span></div>';
+      html += '<div style="background:#2C2C44;padding:4px 10px;border-radius:20px;font-size:12px;color:#8E8E93;">' + allTasks.length + ' devoir(s)</div>';
+      html += '</div>';
+      html += '<div class="tasks-list" data-date="' + dateKey + '" style="margin-left:12px;margin-bottom:12px;">';
+      
+      for (var i = 0; i < allTasks.length; i++) {
+        var task = allTasks[i];
+        var isDone = (task.effectue === true);
+        var taskType = task.interrogation ? "Interrogation" : "Devoir";
+        var hasDocs = (task.documentsAFaire === true);
+        var rawContent = '';
+        if (typeof task.contenu === 'string') {
+          rawContent = task.contenu;
+        } else if (typeof task.aFaire === 'string') {
+          rawContent = task.aFaire;
+        }
+        var taskContent = decodeContent(rawContent);
+        var taskDate = task.donneLe ? new Date(task.donneLe).toLocaleDateString('fr-FR') : formatted.date;
+        var taskId = task.idDevoir || task.id;
+        
+        html += '<div class="task-card" style="border-left:4px solid ' + (isDone ? '#5E5EFF' : '#FFB340') + ';background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:16px;">';
+        html += '<div class="task-meta" style="display:flex;justify-content:space-between;margin-bottom:12px;">';
+        html += '<div><strong style="color:#FFFFFF;font-size:16px;">' + task.matiere + '</strong> <span class="task-badge" style="background:#2C2C44;padding:4px 10px;border-radius:12px;font-size:12px;color:#8E8E93;margin-left:10px;">' + taskType + '</span></div>';
+        html += '<div style="display:flex;align-items:center;gap:16px;">';
+        html += '<span style="color:#8E8E93;font-size:12px;">' + taskDate + '</span>';
+        html += '<span class="task-status" style="color:' + (isDone ? '#5E5EFF' : '#FFB340') + ';font-weight:500;font-size:13px;">' + (isDone ? 'FAIT' : 'A FAIRE') + '</span>';
+        html += '<button class="mark-homework-btn" data-id="' + taskId + '" data-done="' + isDone + '" style="background:#2C2C44;border:none;color:#5E5EFF;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;">' + (isDone ? 'Non fait' : 'Fait') + '</button>';
+        html += '</div>';
+        html += '</div>';
+        
+        if (taskContent) {
+          html += '<div class="task-content" style="color:#E0E0E0;font-size:14px;line-height:1.5;background:#0B0B1A;padding:12px;border-radius:12px;margin-bottom:12px;">' + taskContent + '</div>';
+        }
+        
+        if (hasDocs) {
+          html += '<div class="task-meta" style="margin-top:14px;color:#5E5EFF;">';
+          html += '<span>📎 Pieces jointes disponibles</span>';
+          html += '</div>';
+        }
+        
+        html += '</div>';
+      }
+      
+      html += '</div>';
+      html += '</div>';
+    }
+  }
+  
+  if (!hasTasks) {
+    html += '<div class="empty-state"><p>Aucun devoir a venir</p></div>';
+  }
+  
+  html += '</div>';
+  contentDiv.innerHTML = html;
+  
+  var datePills = document.querySelectorAll('#ed-content .date-pill');
+  for (var i = 0; i < datePills.length; i++) {
+    datePills[i].addEventListener('click', function(e) {
+      e.stopPropagation();
+      var dateKey = this.getAttribute('data-date');
+      showDayDetails(dateKey);
+    });
+  }
+  
+  var markBtns = document.querySelectorAll('.mark-homework-btn');
+  for (var i = 0; i < markBtns.length; i++) {
+    markBtns[i].addEventListener('click', function(e) {
+      e.stopPropagation();
+      var btn = this;
+      var taskId = parseInt(btn.getAttribute('data-id'));
+      var isCurrentlyDone = btn.getAttribute('data-done') === 'true';
+      window.markHomework(taskId, !isCurrentlyDone, btn);
+    });
+  }
+}
+
+function renderDayDetailsView(dateKey, tasks) {
+  var formatted = formatDate(dateKey);
+  var contentDiv = document.getElementById('ed-content');
+  if (!contentDiv) return;
+  
+  var html = '<div style="margin-bottom:20px;">';
+  html += '<button style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;" onclick="window.goBack()">← Retour</button>';
+  html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
+  html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + formatted.dayName + '</h2>';
+  html += '<p style="color:#8E8E93;margin-bottom:24px;">' + formatted.date + '</p>';
+  html += '</div>';
+  
+  for (var i = 0; i < tasks.length; i++) {
+    var task = tasks[i];
+    var isDone = (task.effectue === true);
+    var taskType = task.interrogation ? "Interrogation" : "Devoir";
+    var hasDocs = (task.documents && task.documents.length > 0);
+    var rawContent = typeof task.contenu === 'string' ? task.contenu : '';
+    var cleanContent = decodeContent(rawContent);
+    var taskId = task.idDevoir || task.id;
+    
+    html += '<div class="task-block" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid ' + (isDone ? '#5E5EFF' : '#FFB340') + ';">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;">';
+    html += '<div><span style="font-weight:700;color:white;font-size:18px;">' + task.matiere + '</span> <span style="color:#8E8E93;font-size:13px;margin-left:8px;">' + taskType + '</span></div>';
+    html += '<div><span class="task-status" style="color:' + (isDone ? '#5E5EFF' : '#FFB340') + ';font-size:13px;font-weight:500;">' + (isDone ? 'FAIT' : 'A FAIRE') + '</span>';
+    html += '<button class="mark-homework-btn" data-id="' + taskId + '" data-done="' + isDone + '" style="background:#2C2C44;border:none;color:#5E5EFF;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;margin-left:12px;">' + (isDone ? 'Non fait' : 'Fait') + '</button>';
+    html += '</div></div>';
+    
+    if (cleanContent) {
+      html += '<div style="color:#E0E0E0;font-size:14px;line-height:1.5;margin-bottom:12px;background:#0B0B1A;padding:12px;border-radius:12px;">' + cleanContent + '</div>';
+    }
+    
+    if (task.donneLe) {
+      var givenDate = new Date(task.donneLe);
+      html += '<div style="color:#8E8E93;font-size:12px;margin-bottom:8px;">Donne le: ' + givenDate.toLocaleDateString('fr-FR') + '</div>';
+    }
+    
+    if (hasDocs) {
+      html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2C2C44;">';
+      html += '<span style="color:#8E8E93;font-size:12px;">Pieces jointes:</span>';
+      for (var d = 0; d < task.documents.length; d++) {
+        html += '<div style="color:#5E5EFF;font-size:13px;margin-top:6px;margin-left:12px;">📄 ' + task.documents[d].libelle + '</div>';
+      }
+      html += '</div>';
+    }
+    
+    html += '</div>';
+  }
+  
+  html += '</div>';
+  contentDiv.innerHTML = html;
+  
+  var btns = document.querySelectorAll('.mark-homework-btn');
+  for (var i = 0; i < btns.length; i++) {
+    btns[i].addEventListener('click', function(e) {
+      e.stopPropagation();
+      var btn = this;
+      var taskId = parseInt(btn.getAttribute('data-id'));
+      var isCurrentlyDone = btn.getAttribute('data-done') === 'true';
+      window.markHomework(taskId, !isCurrentlyDone, btn);
+    });
+  }
+}
+
+window.goBack = function() {
+  if (previousView === 'devoirs') {
+    renderDevoirs();
+  } else if (previousView === 'moyennes') {
+    renderMoyennes();
+  } else {
+    renderDevoirs();
+  }
+};
+
+window.goBack = function() {
+  if (previousView === 'devoirs') {
+    renderDevoirs();
+  } else if (previousView === 'moyennes') {
+    renderMoyennes();
+  } else {
+    renderDevoirs();
+  }
+};
 
     async function showDayDetails(dateKey) {
       var contentDiv = document.getElementById('ed-content');
