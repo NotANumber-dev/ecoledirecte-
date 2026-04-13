@@ -886,7 +886,7 @@ window.goBack = function() {
         html += '</div>';
       }
       html += '</div>';
-      if (timelineData && timelineData.length > 0) {
+    //  if (timelineData && timelineData.length > 0) {
         var timelineCount = getTimelineCount();
         var displayedTimeline = timelineData.slice(0, timelineCount);
         html += '<div class="timeline-section" style="width:100%;margin:24px 0;padding:0 24px;">';
@@ -909,7 +909,7 @@ window.goBack = function() {
         html += '</div>';
       }
       contentDiv.innerHTML = html;
-    }
+//    }
 
     function renderMoyennes() {
       var contentDiv = document.getElementById('ed-content');
