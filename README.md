@@ -19,6 +19,12 @@
 
 ## Utilisation
 Executer le raccourci dans la feuille de partage du site ecoledirecte dans safari.
+
+1) ouvrir ecoledirecte.com sur safari
+2) cliquer sur partager
+3) selectioner "plus"
+4) choisir ecoledirecte -
+   
 ### Raccourcis
 Prod: https://www.icloud.com/shortcuts/86a80da0d32943a0b261cb3cf2e86eb0 (jsdelivr cdn, 24h update)
 <br>
