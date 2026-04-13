@@ -245,16 +245,14 @@
     function getEncouragementMessage(average) {
       if (average === null || isNaN(average)) return "Pret a commencer l'annee !";
       var messages = [];
-      if (average >= 0 && average < 5) messages = ["Chaque debut compte, commence petit !", "Un pas a la fois, tu vas y arriver !", "C'est le moment de s'y mettre !"];
-      else if (average >= 5 && average < 8) messages = ["Allez on s'y met, travaille dur !", "Le succes vient a ceux qui persistent !", "Chaque effort compte, continue !"];
-      else if (average >= 8 && average < 10) messages = ["Tu progresses, continue comme ca !", "Petit a petit, l'oiseau fait son nid !", "Les progres sont la, garde le cap !"];
-      else if (average >= 10 && average < 11) messages = ["Pas mal, continue, tu peux le faire !", "Tu es sur la bonne voie !", "Continue tes efforts, ca paye !"];
-      else if (average >= 11 && average < 13) messages = ["Bien joue, garde le rythme !", "Tu es en train de prendre de l'elan !", "Continue comme ca, tu avances !"];
-      else if (average >= 13 && average < 15) messages = ["C'est bien ! Continue !", "Tu es dans le game !", "Excellent travail, poursuis !"];
-      else if (average >= 15 && average < 17) messages = ["Excellent travail ! Tu es sur la bonne voie !", "Tu es impressionnant !", "Continue, tu es fait pour reussir !"];
-      else if (average >= 17 && average < 18.5) messages = ["Waouh, tu es incroyable !", "Tu es un champion !", "Bravo, tu es au top !"];
-      else if (average >= 18.5 && average < 20) messages = ["Va t'amuser, tu es le meilleur !", "Tu es une legende !", "Felicitations, tu es exceptionnel !"];
-      else if (average === 20) messages = ["Parfait ! Tu es le maitre !", "20/20, tu es invincible !"];
+      if (average >= 0 && average < 5) messages = ["Là, va falloir bosser", "Le bon coté des choses, c'est que tu peux difficilement faire pire", "Attention a ne pas faire tomber ta moyenne en negatif"];
+      else if (average >= 5 && average < 10) messages = ["Euuuuuuuuuuuuuh", "Bah fais tes devoirs aussi", "Pense a ton futur"];
+      else if (average >= 10 && average < 13) messages = ["Au moins tu as une moyenne à 2 chiffre", "Arrête de jouer à Valo", "Dis toi que c'est 10/10 et pas 10/20"];
+      else if (average >= 13 && average < 15) messages = ["Bon bah c ok", "Lache pas trop quand meme", "Dis toi que l'art et la musique ne comptent pas au exams"];
+      else if (average >= 15 && average < 17) messages = ["Bon travail ! Tu peux geekhumtravailler !", "Vzy t chill", "async function etreAuTop()"];
+      else if (average >= 17 && average < 18.5) messages = ["Cool cool cool", "T bien soigné", "Bravo, tu es au top !"];
+      else if (average >= 18.5 && average < 20) messages = ["Faut pas copier sur tes voisins tu sais ?", "Bon amuse toi un peu", "L3G3ND3"];
+      else if (average === 20) messages = ["Tu as cheat comment ?"];
       if (messages.length > 0) return messages[Math.floor(Math.random() * messages.length)];
       return "Continue tes efforts !";
     }
