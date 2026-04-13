@@ -1,3 +1,8 @@
+var credentials = JSON.parse(sessionStorage.getItem("credentials"));
+var token = credentials.payload.authToken;
+var accounts = JSON.parse(sessionStorage.getItem("accounts"));
+var id = accounts.payload.accounts[0].id;
+
 function fetchWithTimeout(url, options, timeout = 5000) {
       return Promise.race([
         fetch(url, options),
@@ -7,7 +12,7 @@ function fetchWithTimeout(url, options, timeout = 5000) {
       ]);
     }
 
-    var notesPromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/notes.awp?verbe=get&v=6.17.0`, {
+var notesPromise = fetchWithTimeout(`https://api.ecoledirecte.com/v3/eleves/${id}/notes.awp?verbe=get&v=6.17.0`, {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
