@@ -97,5 +97,5 @@ POST https://api.ecoledirecte.com/v3/eleves/${id}/messages/${messageId}.awp?verb
  - moyennes générale par matière/trimestre/année (calcule avec les coefitients, comparé a l'application mobile parent)
  - devoirs (les caractères speciaux comme é è ´ sonts affichées corectement. & ne s'affiche pas correctement)
 
-## License
+## Licence
 Apache 2.0
