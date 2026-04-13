@@ -8,7 +8,7 @@
  Ne fonctione UNIQUEMENT sur un compte ecoledirecte éleve
  
 > [!warning]
-> Ce projet n'est pas affilié avec applim ou ecoledirecte dans n'importe quel sens
+> Ce projet n'est PAS affilié avec Aplim ou/et EcoleDirecte
 ## Fonctionnalités
 
 - Notes + moyenne (par matière + moyenne gé)
