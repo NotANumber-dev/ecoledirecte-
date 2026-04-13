@@ -1887,7 +1887,7 @@ window.goBack = function() {
         .m-container { max-width: 1200px; margin: 0 auto; padding: 24px; }
         .tab-bar { display: flex; gap: 12px; margin-bottom: 24px; background: #1C1C2E; padding: 8px; border-radius: 16px; flex-wrap: wrap; }
         .tab-btn { flex: 1; padding: 14px; text-align: center; font-size: 16px; font-weight: 600; color: #8E8E93; background: transparent; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; }
-        .tab-btn.active { background: #2C2C44; color: #5E5EFF; box-shadow: 0 2px 8px rgba(94, 94, 255, 0.2); }
+        .tab-btn.active { background: #2C2C44; color: #5E5EFF; }
         .selector-container { margin-bottom: 32px; }
         .trimester-selector { background: #1C1C2E; border-radius: 16px; padding: 8px; display: flex; gap: 8px; }
         .trimester-option { flex: 1; padding: 16px; text-align: center; font-size: 17px; font-weight: 600; color: #8E8E93; background: transparent; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; }
