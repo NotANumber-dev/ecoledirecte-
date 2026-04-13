@@ -60,6 +60,8 @@ Debug panel: https://www.icloud.com/shortcuts/b51d6ab0ad4048588a5ddc57356e919f (
 
 • Cette superposition fonctionne 100 % localement dans votre navigateur
 
+
+toujours pas sur? verifie le code (Main.js)
 ## Requetes web
 [raccourci]
 https://raw.githubusercontent.com/NotANumber-dev/ecoledirecte-/refs/heads/main/main.js
