@@ -49,5 +49,33 @@ Debug panel: https://www.icloud.com/shortcuts/b51d6ab0ad4048588a5ddc57356e919f (
  - moyennes générale par matière/trimestre/année (calcule avec les coefitients, comparé a l'application mobile parent)
  - devoirs (les caractères speciaux comme é è ´ sonts affichées corectement. & ne s'affiche pas correctement)
 
+## Requetes web
+[raccourci]
+https://raw.githubusercontent.com/NotANumber-dev/ecoledirecte-/refs/heads/main/main.js
+OU
+https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-/main/main.js
+
+[code]
+
+POST https://api.ecoledirecte.com/v3/eleves/${id}/notes.awp?verbe=get&v=6.17.0
+
+POST https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte.awp?verbe=get&v=4.98.0
+
+POST https://api.ecoledirecte.com/v3/E/${id}/espacestravail.awp?verbe=get&typeModule=espaceTravail&v=4.98.0
+
+POST https://api.ecoledirecte.com/v3/eleves/${id}/eleveCarnetCorrespondance.awp?verbe=get&v=4.98.0
+
+POST https://api.ecoledirecte.com/v3/eleves/${id}/viescolaire.awp?verbe=get&v=4.98.0
+
+POST https://api.ecoledirecte.com/v3/eleves/${id}/messages.awp?verbe=get&v=4.98.0
+
+POST https://api.ecoledirecte.com/v3/eleves/${id}/timeline.awp?verbe=get&v=4.98.0
+
+POST https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte.awp?verbe=put&v=4.98.0
+
+POST https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte/${dateKey}.awp?verbe=get&v=4.98.0
+
+POST https://api.ecoledirecte.com/v3/eleves/${id}/messages/${messageId}.awp?verbe=get&mode=destinataire&v=4.98.0
+
 ## License
 Apache 2.0
