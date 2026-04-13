@@ -24,7 +24,10 @@ Executer le raccourci dans la feuille de partage du site ecoledirecte dans safar
 2) cliquer sur partager
 3) selectioner "plus"
 4) choisir ecoledirecte -
-   
+
+> [!warning]
+> Assurez-vous d'accorder toutes les autorisation que le raccourci demandera et d'autoriser l'éxécution de JavaScript dans Reglages > Apps > Raccourcis > Avancé > Autoriser l'éxécution de scripts
+
 ### Raccourcis
 Prod: https://www.icloud.com/shortcuts/86a80da0d32943a0b261cb3cf2e86eb0 (jsdelivr cdn, 24h update)
 <br>
