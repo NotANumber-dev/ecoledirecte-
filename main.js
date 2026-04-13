@@ -2076,15 +2076,6 @@ function renderMessagerie() {
 
     document.body.appendChild(widget);
 
-    var erudaScript = document.createElement('script');
-    erudaScript.src = '//cdn.jsdelivr.net/npm/eruda';
-    erudaScript.onload = function() {
-      if (window.eruda) {
-        window.eruda.init();
-      }
-    };
-    document.body.appendChild(erudaScript);
-
     window.goBack = goBack;
     window.navigateToFolder = navigateToFolder;
 
