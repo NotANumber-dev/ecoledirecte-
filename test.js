@@ -1,2 +1,2 @@
 alert('hi');
-completion(result);
+completion();
