@@ -32,11 +32,11 @@ Executer le raccourci dans la feuille de partage du site ecoledirecte dans safar
 > Assurez-vous d'accorder toutes les autorisation que le raccourci demandera et d'autoriser l'éxécution de JavaScript dans Reglages > Apps > Raccourcis > Avancé > Autoriser l'éxécution de scripts
 
 ### Raccourcis
-Prod: https://www.icloud.com/shortcuts/86a80da0d32943a0b261cb3cf2e86eb0 (jsdelivr cdn, 24h update)
+Release: https://www.icloud.com/shortcuts/86a80da0d32943a0b261cb3cf2e86eb0 (jsdelivr cdn, 24h update)
 <br>
 Beta/dev: https://www.icloud.com/shortcuts/d3de9061a50a4327a6395e16ce5bd3ac (raw github API, rate limits)
 <br>
-Debug panel: https://www.icloud.com/shortcuts/b51d6ab0ad4048588a5ddc57356e919f (raw github API, rate limits)
+Debug/test panel: https://www.icloud.com/shortcuts/b51d6ab0ad4048588a5ddc57356e919f (raw github API, rate limits)
 
 ## Sécurité/Confidentialité
 
@@ -54,11 +54,11 @@ Voila TOUTES les requêtes effectuées durant l'éxécution du raccourci (vérif
 
 **Raccourci** :
 
-https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/main.js (Release)
+GET https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/main.js (Release)
 <br>
-OU
+ou
 <br>
-https://raw.githubusercontent.com/NotANumber-dev/ecoledirecte-/refs/heads/main/main.js (Beta/dev)
+GET https://raw.githubusercontent.com/NotANumber-dev/ecoledirecte-/refs/heads/main/main.js (Beta/dev)
 
 **Code** :
 
