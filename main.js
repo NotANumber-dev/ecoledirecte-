@@ -712,7 +712,7 @@ async function showAttachmentModal(fileId, fileName) {
     } else if (blob.type.startsWith('audio/')) {
       body.innerHTML = `<audio src="${blobUrl}" controls style="width:100%;"></audio>`;
     } else {
-      body.innerHTML = `<div style="color:#8E8E93;text-align:center;"><div style="font-size:48px;margin-bottom:16px;"> </div><div>Fichier inconnu</div></div>`;
+      body.innerHTML = `<div style="color:#8E8E93;text-align:center;"><div style="font-size:48px;margin-bottom:16px;"> </div><div>impossible de charger le fichier: non supporté</div></div>`;
     }
   } catch(err) {
     body.innerHTML = `<div style="color:#8E8E93;text-align:center;"><div style="font-size:48px;margin-bottom:16px;"> </div><div>Impossible de charger</div></div>`;
@@ -758,14 +758,14 @@ function renderDayDetailsView(dateKey, tasks) {
       html += '<div style="color:#8E8E93;font-size:12px;margin-bottom:8px;">Donne le: ' + givenDate.toLocaleDateString('fr-FR') + '</div>';
     }
     
-    if (hasDocs) {
-      html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2C2C44;">';
-      html += '<span style="color:#8E8E93;font-size:12px;">Pieces jointes:</span>';
-      for (var d = 0; d < task.documents.length; d++) {
-        html += '<div style="color:#5E5EFF;font-size:13px;margin-top:6px;margin-left:12px;">📄 ' + task.documents[d].libelle + '</div>';
-      }
-      html += '</div>';
-    }
+if (hasDocs) {
+  html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2C2C44;">';
+  html += '<span style="color:#8E8E93;font-size:12px;">Pièces jointes:</span>';
+  for (var d = 0; d < task.documents.length; d++) {
+    html += '<div style="color:#5E5EFF;font-size:13px;margin-top:6px;margin-left:12px;cursor:pointer;" onclick="window.showAttachmentModal(' + task.documents[d].id + ', \'' + task.documents[d].libelle.replace(/'/g, "\\'") + '\')">📄 ' + task.documents[d].libelle + '</div>';
+  }
+  html += '</div>';
+}
     
     html += '</div>';
   }
@@ -1591,10 +1591,13 @@ function renderMessagerie() {
       html += '<div style="font-size:20px;font-weight:700;color:white;margin-bottom:20px;">' + subject + '</div>';
       html += '<div style="color:#E0E0E0;line-height:1.6;">' + cleanContent + '</div>';
       if (hasAttachment) {
-        html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #2C2C44;"><span style="color:#8E8E93;">Pièces jointes:</span>';
-        for (var i = 0; i < msg.files.length; i++) html += '<div style="color:#5E5EFF;margin-top:8px;">📎 ' + msg.files[i].libelle + '</div>';
-        html += '</div>';
-      }
+  html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #2C2C44;">';
+  html += '<span style="color:#8E8E93;">Pièces jointes:</span>';
+  for (var i = 0; i < msg.files.length; i++) {
+    html += '<div style="color:#5E5EFF;margin-top:8px;cursor:pointer;" onclick="window.showAttachmentModal(' + msg.files[i].id + ', \'' + msg.files[i].libelle.replace(/'/g, "\\'") + '\')">📎 ' + msg.files[i].libelle + '</div>';
+  }
+  html += '</div>';
+}
       html += '</div>';
       detailDiv.innerHTML = html;
     })
