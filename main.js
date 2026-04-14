@@ -1590,16 +1590,34 @@ function renderMessagerie() {
       html += '<div style="display:flex;justify-content:space-between;margin-bottom:20px;"><div><strong style="color:#5E5EFF;font-size:18px;">' + contactName + '</strong></div><div style="color:#8E8E93;">' + date + '</div></div>';
       html += '<div style="font-size:20px;font-weight:700;color:white;margin-bottom:20px;">' + subject + '</div>';
       html += '<div style="color:#E0E0E0;line-height:1.6;">' + cleanContent + '</div>';
-      if (hasAttachment) {
-  html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #2C2C44;">';
-  html += '<span style="color:#8E8E93;">Pièces jointes:</span>';
+html += '</div>';
+detailDiv.innerHTML = html;
+
+if (hasAttachment) {
+  var attachSection = document.createElement('div');
+  attachSection.style.cssText = 'margin-top:20px;padding-top:16px;border-top:1px solid #2C2C44;';
+  
+  var label = document.createElement('span');
+  label.textContent = 'Pièces jointes:';
+  label.style.cssText = 'color:#8E8E93;display:block;margin-bottom:8px;';
+  attachSection.appendChild(label);
+  
   for (var i = 0; i < msg.files.length; i++) {
-    html += '<div style="color:#5E5EFF;margin-top:8px;cursor:pointer;" onclick="window.showAttachmentModal(' + msg.files[i].id + ', \'' + msg.files[i].libelle.replace(/'/g, "\\'") + '\')">📎 ' + msg.files[i].libelle + '</div>';
+    (function(file) {
+      var btn = document.createElement('button');
+      btn.textContent = '📎 ' + file.libelle;
+      btn.style.cssText = 'background:#2C2C44;border:none;color:#5E5EFF;padding:10px 16px;border-radius:12px;cursor:pointer;margin-right:8px;margin-bottom:8px;font-size:14px;font-weight:500;display:block;width:100%;text-align:left;';
+      btn.onclick = function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        window.showAttachmentModal(file.id, file.libelle);
+      };
+      attachSection.appendChild(btn);
+    })(msg.files[i]);
   }
-  html += '</div>';
+  
+  detailDiv.appendChild(attachSection);
 }
-      html += '</div>';
-      detailDiv.innerHTML = html;
     })
     .catch(function(err) { detailDiv.innerHTML = '<div style="color:#FF5E5E;text-align:center;padding:20px;">Erreur: ' + err.message + '</div>'; });
   }
