@@ -642,7 +642,85 @@ function renderDevoirs() {
     });
   }
 }
+       
+async function showAttachmentModal(fileId, fileName) {
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:10000000;display:flex;align-items:center;justify-content:center;';
+  
+  var content = document.createElement('div');
+  content.style.cssText = 'background:#1C1C2E;border-radius:16px;padding:20px;width:90vw;height:90vh;display:flex;flex-direction:column;';
+  
+  var header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
+  header.innerHTML = `<span style="color:white;font-size:18px;">${fileName}</span>`;
+  
+  var btnGroup = document.createElement('div');
+  btnGroup.style.cssText = 'display:flex;gap:12px;';
+  
+  var downloadBtn = document.createElement('a');
+  downloadBtn.textContent = 'Télécharger';
+  downloadBtn.style.cssText = 'background:#5E5EFF;color:white;padding:8px 16px;border-radius:8px;text-decoration:none;font-size:14px;opacity:0.4;pointer-events:none;';
+  
+  var closeBtn = document.createElement('button');
+  closeBtn.textContent = '✕';
+  closeBtn.style.cssText = 'background:#2C2C44;border:none;color:white;padding:8px 16px;border-radius:8px;cursor:pointer;';
+  closeBtn.onclick = function() { modal.remove(); };
+  
+  btnGroup.appendChild(downloadBtn);
+  btnGroup.appendChild(closeBtn);
+  header.appendChild(btnGroup);
+  
+  var body = document.createElement('div');
+  body.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#0B0B1A;border-radius:12px;overflow:auto;';
+  body.innerHTML = '<div style="color:#8E8E93;padding:40px;">Chargement...</div>';
+  
+  content.appendChild(header);
+  content.appendChild(body);
+  modal.appendChild(content);
+  document.body.appendChild(modal);
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+  
+  try {
+    var formData = new URLSearchParams();
+    formData.append("data", JSON.stringify({ forceDownload: 0, anneeMessages: "2025-2026" }));
+    
+    var res = await fetch(`https://api.ecoledirecte.com/v3/telechargement.awp?verbe=get&fichierId=${fileId}&leTypeDeFichier=PIECE_JOINTE&v=4.98.0`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded", "X-Token": token },
+      body: formData.toString()
+    });
+    
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    
+    var blob = await res.blob();
+    var blobUrl = URL.createObjectURL(blob);
+    
+    downloadBtn.href = blobUrl;
+    downloadBtn.download = fileName;
+    downloadBtn.style.opacity = '1';
+    downloadBtn.style.pointerEvents = 'auto';
+    
+    if (blob.type.startsWith('image/')) {
+      body.innerHTML = `<img src="${blobUrl}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">`;
+    } else if (blob.type === 'application/pdf') {
+      body.innerHTML = `<embed src="${blobUrl}" type="application/pdf" style="width:100%;height:100%;border:none;border-radius:8px;">`;
+    } else if (blob.type.startsWith('text/')) {
+      var text = await blob.text();
+      body.innerHTML = `<pre style="color:#E0E0E0;text-align:left;background:#0B0B1A;padding:20px;border-radius:8px;overflow:auto;width:100%;height:100%;white-space:pre-wrap;word-break:break-word;">${text}</pre>`;
+    } else if (blob.type.startsWith('video/')) {
+      body.innerHTML = `<video src="${blobUrl}" controls style="max-width:100%;max-height:100%;border-radius:8px;"></video>`;
+    } else if (blob.type.startsWith('audio/')) {
+      body.innerHTML = `<audio src="${blobUrl}" controls style="width:100%;"></audio>`;
+    } else {
+      body.innerHTML = `<div style="color:#8E8E93;text-align:center;"><div style="font-size:48px;margin-bottom:16px;"> </div><div>Fichier inconnu</div></div>`;
+    }
+  } catch(err) {
+    body.innerHTML = `<div style="color:#8E8E93;text-align:center;"><div style="font-size:48px;margin-bottom:16px;"> </div><div>Impossible de charger</div></div>`;
+  }
+}
 
+window.showAttachmentModal = showAttachmentModal;
+       
 function renderDayDetailsView(dateKey, tasks) {
   var formatted = formatDate(dateKey);
   var contentDiv = document.getElementById('ed-content');
