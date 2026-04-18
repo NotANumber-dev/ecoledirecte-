@@ -1,3 +1,5 @@
+name: "Mirror to codeberg"
+
 on:
   push:
     branches: ["main"]
