@@ -3,6 +3,7 @@
    👋 Salut
    https://github.com/NotANumber-dev/ecoledirecte-
    Apache 2.0 License - (c) NotANumber-dev, noodlelover1
+   🔗 nan-dev.pages.dev/host/ed-/main.js  |  nan-dev.pages.dev
 ======================================================== */
 
 (async () => {
