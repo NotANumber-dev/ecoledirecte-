@@ -1,0 +1,34 @@
+name: Sync main.js
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "main.js"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Checkout destination repo
+        uses: actions/checkout@v4
+        with:
+          repository: NotANumber-dev/web
+          token: ${{ secrets.COPY_TO_WEB_TOKEN }}
+          path: web-repo
+
+      - name: Copy file to destination
+        run: |
+          cp main.js web-repo/host/ed-/main.js
+
+      - name: Push to destination repo
+        run: |
+          cd web-repo
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add host/ed-/main.js
+          git diff --quiet && git diff --staged --quiet || git commit -m "Sync main.js from ecoledirecte- repo"
+          git push
