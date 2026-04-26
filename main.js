@@ -1,16 +1,3 @@
-// ==UserScript==
-// @name         Ecoledirecte -
-// @namespace    https://github.com/NotANumber-dev
-// @version      1.3
-// @description  Download all files from Gofile automatically by clicking download buttons
-// @author       NotANumber-dev, noodlelover1
-// @match        https://ecoledirecte.com/*
-// @match        http://ecoledirecte.com/*
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @license      Apache 2.0
-// ==/UserScript==
-
 /* ========================================================
    EcoleDirecte -
    👋 Salut
