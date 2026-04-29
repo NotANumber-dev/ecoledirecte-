@@ -4,6 +4,8 @@
 <p align="center">EcoleDirecte 500x mieux | Raccourci iPhone/iPad/iMac/Mac/MacMini</p>
 </div>
 
+> [!note]
+> les espaces de travails ne marchent pas pour le moment.
 ## Info
  Ne fonctione UNIQUEMENT sur un compte ecoledirecte éleve
  
