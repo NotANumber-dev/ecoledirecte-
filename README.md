@@ -34,7 +34,7 @@ Executer le raccourci dans la feuille de partage du site ecoledirecte dans safar
 > Assurez-vous d'accorder toutes les autorisation que le raccourci demandera et d'autoriser l'éxécution de JavaScript dans Reglages > Apps > Raccourcis > Avancé > Autoriser l'éxécution de scripts
 
 ### Raccourcis
-Release: https://www.icloud.com/shortcuts/86a80da0d32943a0b261cb3cf2e86eb0 (jsdelivr cdn, 24h update)
+Release: https://www.icloud.com/shortcuts/f72134e919ef4267b4edd1fd53dbe680 (jsdelivr cdn, 24h update, no rate limits)
 <br>
 Beta/dev: https://www.icloud.com/shortcuts/d3de9061a50a4327a6395e16ce5bd3ac (raw github API, rate limits)
 <br>
