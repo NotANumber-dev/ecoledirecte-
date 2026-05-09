@@ -581,7 +581,7 @@
         
         if (hasDocs) {
           html += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #2C2C44;">';
-          html += '<span style="color:#8E8E93;font-size:12px;">Pièces jointes:</span>';
+          html += '<span style="color:#8E8E93;font-size:12px;">Pieces jointes:</span>';
           for (var d = 0; d < task.documents.length; d++) {
             html += '<div style="color:#5E5EFF;font-size:13px;margin-top:6px;margin-left:12px;cursor:pointer;" onclick="window.showAttachmentModal(' + task.documents[d].id + ', \'' + task.documents[d].libelle.replace(/'/g, "\\'") + '\')">📄 ' + task.documents[d].libelle + '</div>';
           }
@@ -615,7 +615,7 @@
       
       var header = document.createElement('div');
       header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;';
-      header.innerHTML = `<span style="color:white;font-size:18px;">${fileName}</span>`;
+      header.innerHTML = '<span style="color:white;font-size:18px;">' + fileName + '</span>';
       
       var btnGroup = document.createElement('div');
       btnGroup.style.cssText = 'display:flex;gap:12px;';
@@ -664,21 +664,21 @@
         downloadBtn.style.pointerEvents = 'auto';
         
         if (blob.type.startsWith('image/')) {
-          body.innerHTML = `<img src="${blobUrl}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">`;
+          body.innerHTML = '<img src="' + blobUrl + '" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px;">';
         } else if (blob.type === 'application/pdf') {
-          body.innerHTML = `<embed src="${blobUrl}" type="application/pdf" style="width:100%;height:100%;border:none;border-radius:8px;">`;
+          body.innerHTML = '<embed src="' + blobUrl + '" type="application/pdf" style="width:100%;height:100%;border:none;border-radius:8px;">';
         } else if (blob.type.startsWith('text/')) {
           var text = await blob.text();
-          body.innerHTML = `<pre style="color:#E0E0E0;text-align:left;background:#0B0B1A;padding:20px;border-radius:8px;overflow:auto;width:100%;height:100%;white-space:pre-wrap;word-break:break-word;">${text}</pre>`;
+          body.innerHTML = '<pre style="color:#E0E0E0;text-align:left;background:#0B0B1A;padding:20px;border-radius:8px;overflow:auto;width:100%;height:100%;white-space:pre-wrap;word-break:break-word;">' + text + '</pre>';
         } else if (blob.type.startsWith('video/')) {
-          body.innerHTML = `<video src="${blobUrl}" controls style="max-width:100%;max-height:100%;border-radius:8px;"></video>`;
+          body.innerHTML = '<video src="' + blobUrl + '" controls style="max-width:100%;max-height:100%;border-radius:8px;"></video>';
         } else if (blob.type.startsWith('audio/')) {
-          body.innerHTML = `<audio src="${blobUrl}" controls style="width:100%;"></audio>`;
+          body.innerHTML = '<audio src="' + blobUrl + '" controls style="width:100%;"></audio>';
         } else {
-          body.innerHTML = `<div style="color:#8E8E93;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">📄</div><div>Fichier téléchargé</div></div>`;
+          body.innerHTML = '<div style="color:#8E8E93;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">📄</div><div>Fichier téléchargé</div></div>';
         }
       } catch(err) {
-        body.innerHTML = `<div style="color:#8E8E93;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div>Impossible de charger le fichier</div></div>`;
+        body.innerHTML = '<div style="color:#8E8E93;text-align:center;"><div style="font-size:48px;margin-bottom:16px;">❌</div><div>Impossible de charger le fichier</div></div>';
       }
     }
 
@@ -762,262 +762,263 @@
       contentDiv.innerHTML = html;
     }
 
-function renderMoyennes() {
-  var contentDiv = document.getElementById('ed-content');
-  if (!contentDiv) return;
-  contentDiv.innerHTML = '';
-  
-  var triData = trimesters[currentTrimester];
-  var subjectsList = [];
-  var totalWeighted = 0;
-  var totalCoef = 0;
-  var totalGrades = 0;
-  
-  for (var subject in triData.subjects) {
-    var subj = triData.subjects[subject];
-    var subjectGrades = originalNotes.filter(function(note) {
-      return note.libelleMatiere === subject && note.codePeriode === currentTrimester;
-    });
-    subjectsList.push({
-      name: subject,
-      average: subj.average,
-      count: subj.count,
-      coefSum: subj.coefSum,
-      grades: subjectGrades
-    });
-    totalWeighted += subj.sum;
-    totalCoef += subj.coefSum;
-    totalGrades += subj.count;
-  }
-  
-  subjectsList.sort(function(a, b) { return b.average - a.average; });
-  var trimesterAverage = totalCoef > 0 ? (totalWeighted / totalCoef) : null;
-  
-  var notesSurNumber = parseFloat(notesSur);
-  var useConversion = notesSurNumber !== 20;
-  
-  var displayGeneralAvg = trimesterAverage;
-  if (useConversion && trimesterAverage !== null) {
-    displayGeneralAvg = (trimesterAverage / 20) * notesSurNumber;
-  }
-  
-  var allTotalWeighted = 0;
-  var allTotalCoef = 0;
-  var allTotalGrades = 0;
-  for (var tri in trimesters) {
-    for (var sub in trimesters[tri].subjects) {
-      var s = trimesters[tri].subjects[sub];
-      allTotalWeighted += s.sum;
-      allTotalCoef += s.coefSum;
-      allTotalGrades += s.count;
-    }
-  }
-  var annualAverage = allTotalCoef > 0 ? (allTotalWeighted / allTotalCoef) : null;
-  
-  var displayAnnualAvg = annualAverage;
-  if (useConversion && annualAverage !== null) {
-    displayAnnualAvg = (annualAverage / 20) * notesSurNumber;
-  }
-  
-  var html = '';
-  
-  if (subjectsList.length === 0) {
-    html += '<div class="empty-state"><p>Aucune note pour ce trimestre</p></div>';
-  } else {
-    html += '<div class="stats-grid">';
-    html += '<div class="stat-card"><div class="stat-label">MOYENNE GENERALE</div><div class="stat-value">' + (displayGeneralAvg !== null ? displayGeneralAvg.toFixed(2) : '—') + '</div><div class="stat-sub">Coefficientee</div></div>';
-    html += '<div class="stat-card"><div class="stat-label">NOMBRE DE NOTES</div><div class="stat-value">' + totalGrades + '</div><div class="stat-sub">Ce trimestre</div></div>';
-    html += '</div>';
-    
-    html += '<div class="subjects-grid">';
-    for (var i = 0; i < subjectsList.length; i++) {
-      var sub = subjectsList[i];
-      var gradeColor = getGradeColor(sub.average);
-      var diff = sub.average - trimesterAverage;
-      var diffColor = getDifferenceColor(diff);
-      var diffText = formatDifference(diff);
+    function renderMoyennes() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      contentDiv.innerHTML = '';
       
-      var displayAverage = sub.average;
-      if (useConversion) {
-        displayAverage = (sub.average / 20) * notesSurNumber;
+      var triData = trimesters[currentTrimester];
+      var subjectsList = [];
+      var totalWeighted = 0;
+      var totalCoef = 0;
+      var totalGrades = 0;
+      
+      for (var subject in triData.subjects) {
+        var subj = triData.subjects[subject];
+        var subjectGrades = originalNotes.filter(function(note) {
+          return note.libelleMatiere === subject && note.codePeriode === currentTrimester;
+        });
+        subjectsList.push({
+          name: subject,
+          average: subj.average,
+          count: subj.count,
+          coefSum: subj.coefSum,
+          grades: subjectGrades
+        });
+        totalWeighted += subj.sum;
+        totalCoef += subj.coefSum;
+        totalGrades += subj.count;
       }
       
-      html += '<div class="subject-card" data-subject="' + sub.name.replace(/'/g, "\\'") + '" style="cursor:pointer;">';
-      html += '<div class="subject-header">';
-      html += '<span class="subject-name">' + sub.name + '</span>';
-      html += '<span class="subject-average" style="color:' + gradeColor + ';">' + displayAverage.toFixed(2) + '</span>';
-      html += '</div>';
-      html += '<div class="subject-stats">';
-      html += '<span><span class="grade-indicator" style="background:' + gradeColor + ';"></span>' + sub.count + ' note(s)</span>';
-      html += '<span>Coeff. ' + sub.coefSum.toFixed(1) + '</span>';
-      html += '<div style="font-size:12px;color:' + diffColor + ';margin-left:8px;">' + diffText + '</div>';
+      subjectsList.sort(function(a, b) { return b.average - a.average; });
+      var trimesterAverage = totalCoef > 0 ? (totalWeighted / totalCoef) : null;
+      
+      var notesSurNumber = parseFloat(notesSur);
+      var useConversion = notesSurNumber !== 20;
+      
+      var displayGeneralAvg = trimesterAverage;
+      if (useConversion && trimesterAverage !== null) {
+        displayGeneralAvg = (trimesterAverage / 20) * notesSurNumber;
+      }
+      
+      var allTotalWeighted = 0;
+      var allTotalCoef = 0;
+      var allTotalGrades = 0;
+      for (var tri in trimesters) {
+        for (var sub in trimesters[tri].subjects) {
+          var s = trimesters[tri].subjects[sub];
+          allTotalWeighted += s.sum;
+          allTotalCoef += s.coefSum;
+          allTotalGrades += s.count;
+        }
+      }
+      var annualAverage = allTotalCoef > 0 ? (allTotalWeighted / allTotalCoef) : null;
+      
+      var displayAnnualAvg = annualAverage;
+      if (useConversion && annualAverage !== null) {
+        displayAnnualAvg = (annualAverage / 20) * notesSurNumber;
+      }
+      
+      var html = '';
+      
+      if (subjectsList.length === 0) {
+        html += '<div class="empty-state"><p>Aucune note pour ce trimestre</p></div>';
+      } else {
+        html += '<div class="stats-grid">';
+        html += '<div class="stat-card"><div class="stat-label">MOYENNE GENERALE</div><div class="stat-value">' + (displayGeneralAvg !== null ? displayGeneralAvg.toFixed(2) : '—') + '</div><div class="stat-sub">Coefficientee</div></div>';
+        html += '<div class="stat-card"><div class="stat-label">NOMBRE DE NOTES</div><div class="stat-value">' + totalGrades + '</div><div class="stat-sub">Ce trimestre</div></div>';
+        html += '</div>';
+        
+        html += '<div class="subjects-grid">';
+        for (var i = 0; i < subjectsList.length; i++) {
+          var sub = subjectsList[i];
+          var gradeColor = getGradeColor(sub.average);
+          var diff = sub.average - trimesterAverage;
+          var diffColor = getDifferenceColor(diff);
+          var diffText = formatDifference(diff);
+          
+          var displayAverage = sub.average;
+          if (useConversion) {
+            displayAverage = (sub.average / 20) * notesSurNumber;
+          }
+          
+          html += '<div class="subject-card" data-subject="' + sub.name.replace(/'/g, "\\'") + '" style="cursor:pointer;">';
+          html += '<div class="subject-header">';
+          html += '<span class="subject-name">' + sub.name + '</span>';
+          html += '<span class="subject-average" style="color:' + gradeColor + ';">' + displayAverage.toFixed(2) + '</span>';
+          html += '</div>';
+          html += '<div class="subject-stats">';
+          html += '<span><span class="grade-indicator" style="background:' + gradeColor + ';"></span>' + sub.count + ' note(s)</span>';
+          html += '<span>Coeff. ' + sub.coefSum.toFixed(1) + '</span>';
+          html += '<div style="font-size:12px;color:' + diffColor + ';margin-left:8px;">' + diffText + '</div>';
+          html += '</div>';
+          
+          if (sub.grades.length > 0) {
+            html += '<div class="subject-grades-list" style="margin-top:16px;padding-top:12px;border-top:1px solid #2C2C44;">';
+            html += '<div style="font-size:11px;color:#8E8E93;margin-bottom:8px;">Notes récentes:</div>';
+            
+            var recentGrades = sub.grades.slice(0, 4);
+            for (var g = 0; g < recentGrades.length; g++) {
+              var grade = recentGrades[g];
+              var gradeValue = grade.valeur;
+              var noteSur = grade.noteSur || 20;
+              var isNonSignificative = grade.nonSignificatif === true;
+              var originalValue = parseFloat(gradeValue.replace(',', '.'));
+              var dateStr = grade.date || grade.dateSaisie;
+              var shortDate = dateStr ? dateStr.substring(5, 10).replace(/-/g, '/') : '';
+              
+              var displayValue = gradeValue;
+              var displayMax = noteSur;
+              
+              if (useConversion && !isNonSignificative) {
+                var newValue = (originalValue / noteSur) * notesSurNumber;
+                displayValue = newValue.toFixed(2).replace('.', ',');
+                displayMax = notesSurNumber;
+              }
+              
+              var gradePercent = originalValue / noteSur * 20;
+              var gradeColorSmall = getGradeColor(gradePercent);
+            
+              html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px;">';
+              html += '<span style="color:#8E8E93;">' + shortDate + '</span>';
+              
+              if (isNonSignificative) {
+                html += '<span style="color:' + gradeColorSmall + ';font-weight:500;">(' + gradeValue + '/' + noteSur + ')</span>';
+              } else {
+                html += '<span style="color:' + gradeColorSmall + ';font-weight:500;">' + displayValue + '/' + displayMax + '</span>';
+              }
+              
+              html += '</div>';
+            }
+            
+            if (sub.grades.length > 4) {
+              html += '<div style="text-align:center;margin-top:6px;">';
+              html += '<span style="font-size:10px;color:#8E8E93;">+' + (sub.grades.length - 4) + ' autres</span>';
+              html += '</div>';
+            }
+            
+            html += '</div>';
+          }
+          
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+      
+      if (annualAverage !== null) {
+        html += '<div class="annual-card">';
+        html += '<div class="annual-label">MOYENNE ANNUELLE</div>';
+        html += '<div class="annual-value">' + displayAnnualAvg.toFixed(2) + '</div>';
+        html += '<div class="annual-note-count">' + allTotalGrades + ' notes sur toute l annee</div>';
+        html += '</div>';
+      }
+      
+      contentDiv.innerHTML = html;
+      
+      var subjectCards = contentDiv.querySelectorAll('.subject-card[data-subject]');
+      for (var i = 0; i < subjectCards.length; i++) {
+        subjectCards[i].addEventListener('click', function() {
+          var subjectName = this.getAttribute('data-subject');
+          showSubjectGrades(subjectName);
+        });
+      }
+    }
+
+    function showSubjectGrades(subjectName) {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      previousView = 'moyennes';
+      
+      var subjectGrades = originalNotes.filter(function(note) {
+        return note.libelleMatiere === subjectName && note.codePeriode === currentTrimester;
+      });
+      
+      if (subjectGrades.length === 0) {
+        subjectGrades = originalNotes.filter(function(note) {
+          return note.libelleMatiere === subjectName;
+        });
+        var trimesterDisplay = 'Toutes les periodes';
+      } else {
+        var trimesterDisplay = trimesters[currentTrimester].name;
+      }
+      
+      var html = '<div style="margin-bottom:20px;">';
+      html += '<button id="back-to-moyennes" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour aux moyennes</button>';
+      html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
+      html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + subjectName + '</h2>';
+      html += '<p style="color:#8E8E93;margin-bottom:24px;">' + trimesterDisplay + '</p>';
       html += '</div>';
       
-      if (sub.grades.length > 0) {
-        html += '<div class="subject-grades-list" style="margin-top:16px;padding-top:12px;border-top:1px solid #2C2C44;">';
-        html += '<div style="font-size:11px;color:#8E8E93;margin-bottom:8px;">Notes récentes:</div>';
-        
-        var recentGrades = sub.grades.slice(0, 4);
-        for (var g = 0; g < recentGrades.length; g++) {
-          var grade = recentGrades[g];
+      if (subjectGrades.length === 0) {
+        html += '<div class="empty-state"><p>Aucune note trouvee pour cette matiere</p></div>';
+      } else {
+        html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
+        for (var i = 0; i < subjectGrades.length; i++) {
+          var grade = subjectGrades[i];
           var gradeValue = grade.valeur;
           var noteSur = grade.noteSur || 20;
           var isNonSignificative = grade.nonSignificatif === true;
           var originalValue = parseFloat(gradeValue.replace(',', '.'));
+          var gradeColor = getGradeColor(originalValue / noteSur * 20);
           var dateStr = grade.date || grade.dateSaisie;
-          var shortDate = dateStr ? dateStr.substring(5, 10).replace(/-/g, '/') : '';
+          var formattedDate = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR') : 'Date inconnue';
+          var commentaire = grade.commentaire || '';
+          var decodedComment = decodeContent(commentaire);
+          
+          var profName = "";
+          if (showProfName && grade.professeurs && grade.professeurs.length > 0) {
+            var prof = grade.professeurs[0];
+            var prenomInitial = prof.prenom ? prof.prenom.charAt(0) + '. ' : '';
+            profName = prenomInitial + prof.nom;
+          }
           
           var displayValue = gradeValue;
           var displayMax = noteSur;
-          
-          if (useConversion && !isNonSignificative) {
-            var newValue = (originalValue / noteSur) * notesSurNumber;
+          if (notesSur !== '20' && !isNonSignificative) {
+            var newMax = parseFloat(notesSur);
+            var newValue = (originalValue / noteSur) * newMax;
             displayValue = newValue.toFixed(2).replace('.', ',');
-            displayMax = notesSurNumber;
+            displayMax = notesSur;
           }
           
-          var gradePercent = originalValue / noteSur * 20;
-          var gradeColorSmall = getGradeColor(gradePercent);
-          
-          html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:12px;">';
-          html += '<span style="color:#8E8E93;">' + shortDate + '</span>';
+          html += '<div style="padding:16px 20px;border-bottom:1px solid #2C2C44;display:flex;justify-content:space-between;align-items:center;">';
+          html += '<div>';
+          html += '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">';
           
           if (isNonSignificative) {
-            html += '<span style="color:' + gradeColorSmall + ';font-weight:500;">(' + gradeValue + '/' + noteSur + ')</span>';
+            html += '<div style="font-size:16px;font-weight:600;color:#FFFFFF;margin-bottom:4px;">(' + gradeValue + '/' + noteSur + ')</div>';
           } else {
-            html += '<span style="color:' + gradeColorSmall + ';font-weight:500;">' + displayValue + '/' + displayMax + '</span>';
+            html += '<div style="font-size:16px;font-weight:600;color:#FFFFFF;margin-bottom:4px;">' + displayValue + '/' + displayMax + '</div>';
           }
           
+          if (profName) {
+            html += '<div style="font-size:12px;color:#5E5EFF;">' + profName + '</div>';
+          }
+          html += '</div>';
+          html += '<div style="font-size:12px;color:#8E8E93;">' + formattedDate + '</div>';
+          if (decodedComment) {
+            html += '<div style="font-size:13px;color:#B3B3D2;margin-top:8px;max-width:400px;">' + decodedComment + '</div>';
+          }
+          html += '</div>';
+          html += '<div style="text-align:right;">';
+          html += '<div style="font-size:24px;font-weight:700;color:' + gradeColor + ';">' + (isNonSignificative ? '(' + gradeValue + ')' : displayValue) + '</div>';
+          html += '<div style="font-size:11px;color:#8E8E93;margin-top:4px;">Coeff. ' + (grade.coef || 1) + '</div>';
+          html += '</div>';
           html += '</div>';
         }
-        
-        if (sub.grades.length > 4) {
-          html += '<div style="text-align:center;margin-top:6px;">';
-          html += '<span style="font-size:10px;color:#5E5EFF;">+' + (sub.grades.length - 4) + ' autres</span>';
-          html += '</div>';
-        }
-        
         html += '</div>';
       }
       
       html += '</div>';
+      contentDiv.innerHTML = html;
+      
+      var backButton = document.getElementById('back-to-moyennes');
+      if (backButton) {
+        backButton.addEventListener('click', function() {
+          renderMoyennes();
+        });
+      }
     }
-    html += '</div>';
-  }
-  
-  if (annualAverage !== null) {
-    html += '<div class="annual-card">';
-    html += '<div class="annual-label">MOYENNE ANNUELLE</div>';
-    html += '<div class="annual-value">' + displayAnnualAvg.toFixed(2) + '</div>';
-    html += '<div class="annual-note-count">' + allTotalGrades + ' notes sur toute l annee</div>';
-    html += '</div>';
-  }
-  
-  contentDiv.innerHTML = html;
-  
-  var subjectCards = contentDiv.querySelectorAll('.subject-card[data-subject]');
-  for (var i = 0; i < subjectCards.length; i++) {
-    subjectCards[i].addEventListener('click', function() {
-      var subjectName = this.getAttribute('data-subject');
-      showSubjectGrades(subjectName);
-    });
-  }
-}
-function showSubjectGrades(subjectName) {
-  var contentDiv = document.getElementById('ed-content');
-  if (!contentDiv) return;
-  previousView = 'moyennes';
-  
-  var subjectGrades = originalNotes.filter(function(note) {
-    return note.libelleMatiere === subjectName && note.codePeriode === currentTrimester;
-  });
-  
-  if (subjectGrades.length === 0) {
-    subjectGrades = originalNotes.filter(function(note) {
-      return note.libelleMatiere === subjectName;
-    });
-    var trimesterDisplay = 'Toutes les periodes';
-  } else {
-    var trimesterDisplay = trimesters[currentTrimester].name;
-  }
-  
-  var html = '<div style="margin-bottom:20px;">';
-  html += '<button id="back-to-moyennes" style="background:#2C2C44;border:none;color:white;padding:10px 20px;border-radius:12px;cursor:pointer;margin-bottom:20px;">← Retour aux moyennes</button>';
-  html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
-  html += '<h2 style="color:#5E5EFF;margin-bottom:8px;">' + subjectName + '</h2>';
-  html += '<p style="color:#8E8E93;margin-bottom:24px;">' + trimesterDisplay + '</p>';
-  html += '</div>';
-  
-  if (subjectGrades.length === 0) {
-    html += '<div class="empty-state"><p>Aucune note trouvee pour cette matiere</p></div>';
-  } else {
-    html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
-    for (var i = 0; i < subjectGrades.length; i++) {
-      var grade = subjectGrades[i];
-      var gradeValue = grade.valeur;
-      var noteSur = grade.noteSur || 20;
-      var isNonSignificative = grade.nonSignificatif === true;
-      var originalValue = parseFloat(gradeValue.replace(',', '.'));
-      var gradeColor = getGradeColor(originalValue / noteSur * 20);
-      var dateStr = grade.date || grade.dateSaisie;
-      var formattedDate = dateStr ? new Date(dateStr).toLocaleDateString('fr-FR') : 'Date inconnue';
-      var commentaire = grade.commentaire || '';
-      var decodedComment = decodeContent(commentaire);
-      
-      var profName = "";
-      if (showProfName && grade.professeurs && grade.professeurs.length > 0) {
-        var prof = grade.professeurs[0];
-        var prenomInitial = prof.prenom ? prof.prenom.charAt(0) + '. ' : '';
-        profName = prenomInitial + prof.nom;
-      }
-      
-      var displayValue = gradeValue;
-      var displayMax = noteSur;
-      if (notesSur !== '20' && !isNonSignificative) {
-        var newMax = parseFloat(notesSur);
-        var newValue = (originalValue / noteSur) * newMax;
-        displayValue = newValue.toFixed(2).replace('.', ',');
-        displayMax = notesSur;
-      }
-      
-      html += '<div style="padding:16px 20px;border-bottom:1px solid #2C2C44;display:flex;justify-content:space-between;align-items:center;">';
-      html += '<div>';
-      html += '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;">';
-      
-      if (isNonSignificative) {
-        html += '<div style="font-size:16px;font-weight:600;color:#FFFFFF;margin-bottom:4px;">(' + gradeValue + '/' + noteSur + ')</div>';
-      } else {
-        html += '<div style="font-size:16px;font-weight:600;color:#FFFFFF;margin-bottom:4px;">' + displayValue + '/' + displayMax + '</div>';
-      }
-      
-      if (profName) {
-        html += '<div style="font-size:12px;color:#5E5EFF;">' + profName + '</div>';
-      }
-      html += '</div>';
-      html += '<div style="font-size:12px;color:#8E8E93;">' + formattedDate + '</div>';
-      if (decodedComment) {
-        html += '<div style="font-size:13px;color:#B3B3D2;margin-top:8px;max-width:400px;">' + decodedComment + '</div>';
-      }
-      html += '</div>';
-      html += '<div style="text-align:right;">';
-      html += '<div style="font-size:24px;font-weight:700;color:' + gradeColor + ';">' + (isNonSignificative ? '(' + gradeValue + ')' : displayValue) + '</div>';
-      html += '<div style="font-size:11px;color:#8E8E93;margin-top:4px;">Coeff. ' + (grade.coef || 1) + '</div>';
-      html += '</div>';
-      html += '</div>';
-    }
-    html += '</div>';
-  }
-  
-  html += '</div>';
-  contentDiv.innerHTML = html;
-  
-  var backButton = document.getElementById('back-to-moyennes');
-  if (backButton) {
-    backButton.addEventListener('click', function() {
-      renderMoyennes();
-    });
-  }
-}
 
     function getDifferenceColor(diff) {
       if (diff > 0) return '#40D9A4';
@@ -1140,165 +1141,433 @@ function showSubjectGrades(subjectName) {
       return null;
     }
 
-function renderCarnet() {
-  var contentDiv = document.getElementById('ed-content');
-  if (!contentDiv) return;
-  contentDiv.innerHTML = '';
-  
-  var correspondances = carnetData.correspondances || [];
-  
-  function highlightText(text, searchTerm) {
-    if (!searchTerm || searchTerm.trim() === "") return text;
-    var regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
-    return text.replace(regex, '<mark style="background:#FFD700;color:#1C1C2E;padding:0 2px;border-radius:4px;">$1</mark>');
-  }
-  
-  var html = '<div class="carnet-container">';
-  html += '<div class="search-bar" style="margin-bottom:20px;position:sticky;top:0;background:#0B0B1A;padding:12px 0;z-index:10;">';
-  html += '<div style="display:flex;gap:12px;align-items:center;background:#1C1C2E;border-radius:16px;padding:8px 16px;">';
-  html += '<span style="color:#8E8E93;">🔍</span>';
-  html += '<input type="text" id="carnetSearch" placeholder="Rechercher par expediteur, contenu ou date..." style="flex:1;background:transparent;border:none;color:white;font-size:15px;outline:none;">';
-  html += '<button id="clearSearch" style="background:#2C2C44;border:none;color:#8E8E93;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Effacer</button>';
-  html += '</div>';
-  html += '<div style="display:flex;gap:8px;margin-top:8px;">';
-  html += '<button class="filter-btn" data-filter="all" style="background:#2C2C44;border:none;color:#5E5EFF;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Tous</button>';
-  html += '<button class="filter-btn" data-filter="unsigned" style="background:#2C2C44;border:none;color:#FFB340;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Non signes</button>';
-  html += '<button class="filter-btn" data-filter="signed" style="background:#2C2C44;border:none;color:#5E5EFF;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Signes</button>';
-  html += '</div>';
-  html += '</div>';
-  html += '<div id="carnetMessages"></div>';
-  html += '</div>';
-  
-  contentDiv.innerHTML = html;
-  
-  function formatDate(dateStr) {
-    var date = new Date(dateStr);
-    var days = ["DIMANCHE", "LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI"];
-    var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
-    var dayName = days[date.getDay()];
-    var dayNum = date.getDate();
-    var month = months[date.getMonth()];
-    return dayName + " " + dayNum + " " + month;
-  }
-  
-  function renderMessages(filterText, filterType) {
-    var messagesDiv = document.getElementById('carnetMessages');
-    if (!messagesDiv) return;
-    
-    var filtered = correspondances.filter(function(msg) {
-      var auteur = msg.auteur || {};
-      var auteurName = ((auteur.nom || "") + " " + (auteur.prenom || "")).toLowerCase();
-      var content = (msg.contenu || "").toLowerCase();
-      var date = (msg.dateCreation || "").toLowerCase();
-      var searchLower = filterText.toLowerCase();
-      var matchesSearch = filterText === "" || auteurName.indexOf(searchLower) !== -1 || content.indexOf(searchLower) !== -1 || date.indexOf(searchLower) !== -1;
-      var isSigned = isActuallySigned(msg);
-      var matchesFilter = true;
-      if (filterType === "signed") matchesFilter = isSigned;
-      if (filterType === "unsigned") matchesFilter = hasSignatureOption(msg) && !isSigned;
-      return matchesSearch && matchesFilter;
-    });
-    
-    if (filtered.length === 0) {
-      messagesDiv.innerHTML = '<div class="empty-state"><p>Aucun message trouve</p></div>';
-      return;
-    }
-    
-    var html = '';
-    for (var i = 0; i < filtered.length; i++) {
-      var msg = filtered[i];
-      var date = msg.dateCreation || "";
-      var formattedDate = formatDate(date);
-      var isSigned = isActuallySigned(msg);
-      var hasOption = hasSignatureOption(msg);
-      var sig = getSignature(msg);
-      var auteur = msg.auteur || {};
-      var auteurName = "";
-      if (showProfName) {
-        var prenomInitial = auteur.prenom ? auteur.prenom.charAt(0) + '. ' : '';
-        auteurName = prenomInitial + (auteur.nom || "");
-      } else {
-        auteurName = (auteur.nom || "") + " " + (auteur.prenom || "");
-      }
-      var cleanContent = decodeContent(msg.contenu || "");
-      var hasAttachment = msg.urlFichier && msg.urlFichier !== "";
-      var highlightedName = filterText ? highlightText(auteurName, filterText) : auteurName;
-      var highlightedContent = filterText ? highlightText(cleanContent, filterText) : cleanContent;
-      var borderColor = '#2C2C44';
-      if (isSigned) borderColor = '#5E5EFF';
-      else if (hasOption) borderColor = '#FFB340';
+    function renderCarnet() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      contentDiv.innerHTML = '';
       
-      html += '<div class="carnet-card" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid ' + borderColor + ';">';
-      html += '<div style="display:flex;justify-content:space-between;margin-bottom:12px;">';
-      html += '<div><strong style="color:#5E5EFF;">' + highlightedName + '</strong> <span style="color:#8E8E93;font-size:12px;">(' + (msg.type || "") + ')</span></div>';
-      html += '<div style="color:#8E8E93;font-size:12px;">' + formattedDate + '</div>';
+      var correspondances = carnetData.correspondances || [];
+      
+      function highlightText(text, searchTerm) {
+        if (!searchTerm || searchTerm.trim() === "") return text;
+        var regex = new RegExp('(' + searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+        return text.replace(regex, '<mark style="background:#FFD700;color:#1C1C2E;padding:0 2px;border-radius:4px;">$1</mark>');
+      }
+      
+      var html = '<div class="carnet-container">';
+      html += '<div class="search-bar" style="margin-bottom:20px;position:sticky;top:0;background:#0B0B1A;padding:12px 0;z-index:10;">';
+      html += '<div style="display:flex;gap:12px;align-items:center;background:#1C1C2E;border-radius:16px;padding:8px 16px;">';
+      html += '<span style="color:#8E8E93;">🔍</span>';
+      html += '<input type="text" id="carnetSearch" placeholder="Rechercher par expediteur, contenu ou date..." style="flex:1;background:transparent;border:none;color:white;font-size:15px;outline:none;">';
+      html += '<button id="clearSearch" style="background:#2C2C44;border:none;color:#8E8E93;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Effacer</button>';
       html += '</div>';
-      html += '<div style="color:#E0E0E0;font-size:14px;line-height:1.5;margin-bottom:12px;">' + highlightedContent + '</div>';
-      html += '<div style="margin-top:12px;">';
+      html += '<div style="display:flex;gap:8px;margin-top:8px;">';
+      html += '<button class="filter-btn" data-filter="all" style="background:#2C2C44;border:none;color:#5E5EFF;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Tous</button>';
+      html += '<button class="filter-btn" data-filter="unsigned" style="background:#2C2C44;border:none;color:#FFB340;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Non signes</button>';
+      html += '<button class="filter-btn" data-filter="signed" style="background:#2C2C44;border:none;color:#5E5EFF;padding:6px 12px;border-radius:10px;cursor:pointer;font-size:12px;">Signes</button>';
+      html += '</div>';
+      html += '</div>';
+      html += '<div id="carnetMessages"></div>';
+      html += '</div>';
       
-      if (isSigned && sig) {
-        var sigDate = sig.dateValidation || sig.datevalidation || "";
-        var sigFormattedDate = formatDate(sigDate);
-        var sigName = (sig.nom || "") + " " + (sig.prenom || "");
-        var highlightedSigName = filterText ? highlightText(sigName, filterText) : sigName;
-        html += '<span style="color:#5E5EFF;font-size:12px;">✓ Signe par ' + highlightedSigName + ' le ' + sigFormattedDate + '</span>';
-      } else if (hasOption) {
-        html += '<span style="color:#FFB340;font-size:12px;">○ En attente de signature</span>';
+      contentDiv.innerHTML = html;
+      
+      function formatDateShort(dateStr) {
+        var date = new Date(dateStr);
+        var days = ["DIMANCHE", "LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI"];
+        var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
+        var dayName = days[date.getDay()];
+        var dayNum = date.getDate();
+        var month = months[date.getMonth()];
+        return dayName + " " + dayNum + " " + month;
       }
       
-      if (hasAttachment) {
-        html += '<button class="attachment-btn" data-file="' + msg.urlFichier + '" style="background:#2C2C44;border:none;color:#5E5EFF;padding:8px 16px;border-radius:10px;cursor:pointer;font-size:12px;margin-left:12px;">📎 Piece jointe</button>';
+      function renderMessages(filterText, filterType) {
+        var messagesDiv = document.getElementById('carnetMessages');
+        if (!messagesDiv) return;
+        
+        var filtered = correspondances.filter(function(msg) {
+          var auteur = msg.auteur || {};
+          var auteurName = ((auteur.nom || "") + " " + (auteur.prenom || "")).toLowerCase();
+          var content = (msg.contenu || "").toLowerCase();
+          var date = (msg.dateCreation || "").toLowerCase();
+          var searchLower = filterText.toLowerCase();
+          var matchesSearch = filterText === "" || auteurName.indexOf(searchLower) !== -1 || content.indexOf(searchLower) !== -1 || date.indexOf(searchLower) !== -1;
+          var isSigned = isActuallySigned(msg);
+          var matchesFilter = true;
+          if (filterType === "signed") matchesFilter = isSigned;
+          if (filterType === "unsigned") matchesFilter = hasSignatureOption(msg) && !isSigned;
+          return matchesSearch && matchesFilter;
+        });
+        
+        if (filtered.length === 0) {
+          messagesDiv.innerHTML = '<div class="empty-state"><p>Aucun message trouve</p></div>';
+          return;
+        }
+        
+        var html = '';
+        for (var i = 0; i < filtered.length; i++) {
+          var msg = filtered[i];
+          var date = msg.dateCreation || "";
+          var formattedDate = formatDateShort(date);
+          var isSigned = isActuallySigned(msg);
+          var hasOption = hasSignatureOption(msg);
+          var sig = getSignature(msg);
+          var auteur = msg.auteur || {};
+          var auteurName = "";
+          if (showProfName) {
+            var prenomInitial = auteur.prenom ? auteur.prenom.charAt(0) + '. ' : '';
+            auteurName = prenomInitial + (auteur.nom || "");
+          } else {
+            auteurName = (auteur.nom || "") + " " + (auteur.prenom || "");
+          }
+          var cleanContent = decodeContent(msg.contenu || "");
+          var hasAttachment = msg.urlFichier && msg.urlFichier !== "";
+          var highlightedName = filterText ? highlightText(auteurName, filterText) : auteurName;
+          var highlightedContent = filterText ? highlightText(cleanContent, filterText) : cleanContent;
+          var borderColor = '#2C2C44';
+          if (isSigned) borderColor = '#5E5EFF';
+          else if (hasOption) borderColor = '#FFB340';
+          
+          html += '<div class="carnet-card" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:16px;border-left:4px solid ' + borderColor + ';">';
+          html += '<div style="display:flex;justify-content:space-between;margin-bottom:12px;">';
+          html += '<div><strong style="color:#5E5EFF;">' + highlightedName + '</strong> <span style="color:#8E8E93;font-size:12px;">(' + (msg.type || "") + ')</span></div>';
+          html += '<div style="color:#8E8E93;font-size:12px;">' + formattedDate + '</div>';
+          html += '</div>';
+          html += '<div style="color:#E0E0E0;font-size:14px;line-height:1.5;margin-bottom:12px;">' + highlightedContent + '</div>';
+          html += '<div style="margin-top:12px;">';
+          
+          if (isSigned && sig) {
+            var sigDate = sig.dateValidation || sig.datevalidation || "";
+            var sigFormattedDate = formatDateShort(sigDate);
+            var sigName = (sig.nom || "") + " " + (sig.prenom || "");
+            var highlightedSigName = filterText ? highlightText(sigName, filterText) : sigName;
+            html += '<span style="color:#5E5EFF;font-size:12px;">✓ Signe par ' + highlightedSigName + ' le ' + sigFormattedDate + '</span>';
+          } else if (hasOption) {
+            html += '<span style="color:#FFB340;font-size:12px;">○ En attente de signature</span>';
+          }
+          
+          if (hasAttachment) {
+            html += '<button class="attachment-btn" data-file="' + msg.urlFichier + '" style="background:#2C2C44;border:none;color:#5E5EFF;padding:8px 16px;border-radius:10px;cursor:pointer;font-size:12px;margin-left:12px;">📎 Piece jointe</button>';
+          }
+          
+          html += '</div></div>';
+        }
+        
+        messagesDiv.innerHTML = html;
+        
+        var attachBtns = document.querySelectorAll('.attachment-btn');
+        for (var i = 0; i < attachBtns.length; i++) {
+          attachBtns[i].addEventListener('click', function(e) {
+            e.stopPropagation();
+            alert("Piece jointe disponible. Veuillez utiliser l'application Ecole Directe ou le site web pour y acceder.");
+          });
+        }
       }
       
-      html += '</div></div>';
+      var searchInput = document.getElementById('carnetSearch');
+      var clearBtn = document.getElementById('clearSearch');
+      var currentFilter = "all";
+      
+      function updateMessages() {
+        var searchText = searchInput ? searchInput.value : "";
+        renderMessages(searchText, currentFilter);
+      }
+      
+      if (searchInput) {
+        searchInput.addEventListener('input', updateMessages);
+      }
+      
+      if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+          if (searchInput) searchInput.value = "";
+          updateMessages();
+        });
+      }
+      
+      var filterBtns = document.querySelectorAll('.filter-btn');
+      for (var i = 0; i < filterBtns.length; i++) {
+        filterBtns[i].addEventListener('click', function() {
+          currentFilter = this.getAttribute('data-filter');
+          for (var j = 0; j < filterBtns.length; j++) {
+            filterBtns[j].style.opacity = "0.6";
+          }
+          this.style.opacity = "1";
+          updateMessages();
+        });
+        filterBtns[i].style.opacity = i === 0 ? "1" : "0.6";
+      }
+      
+      renderMessages("", "all");
     }
-    
-    messagesDiv.innerHTML = html;
-    
-    var attachBtns = document.querySelectorAll('.attachment-btn');
-    for (var i = 0; i < attachBtns.length; i++) {
-      attachBtns[i].addEventListener('click', function(e) {
-        e.stopPropagation();
-        alert("Piece jointe disponible. Veuillez utiliser l'application Ecole Directe ou le site web pour y acceder.");
+
+    function renderEmploiDuTemps() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      contentDiv.innerHTML = '';
+      
+      var viewMode = 'day';
+      var selectedDate = new Date();
+      var currentCourses = [];
+      
+      function formatTime(dateStr) {
+        var date = new Date(dateStr);
+        return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+      }
+      
+      function getWeekDays(date) {
+        var weekDays = [];
+        var monday = new Date(date);
+        var day = monday.getDay();
+        var diff = monday.getDate() - day + (day === 0 ? -6 : 1);
+        monday.setDate(diff);
+        
+        for (var i = 0; i < 5; i++) {
+          var dayDate = new Date(monday);
+          dayDate.setDate(monday.getDate() + i);
+          weekDays.push(dayDate);
+        }
+        return weekDays;
+      }
+      
+      async function fetchSchedule(startDate, endDate) {
+        contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
+        
+        try {
+          var body = {
+            dateDebut: startDate.toISOString().split('T')[0],
+            dateFin: endDate.toISOString().split('T')[0],
+            avecTrous: false
+          };
+          
+          var res = await fetch(`https://api.ecoledirecte.com/v3/E/${id}/emploidutemps.awp?verbe=get&v=4.98.0`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              "X-Token": token
+            },
+            body: "data=" + encodeURIComponent(JSON.stringify(body))
+          });
+          
+          var json = await res.json();
+          if (json.code === 200 && Array.isArray(json.data)) {
+            return json.data;
+          }
+          return [];
+        } catch(e) {
+          return [];
+        }
+      }
+      
+      function groupByDay(courses, date) {
+        var dateStr = date.toISOString().split('T')[0];
+        return courses.filter(function(c) { 
+          var courseDate = c.start_date.split(' ')[0];
+          return courseDate === dateStr;
+        });
+      }
+      
+      function renderDayView(courses, date) {
+        var dayCourses = groupByDay(courses, date);
+        dayCourses.sort(function(a, b) { return a.start_date.localeCompare(b.start_date); });
+        
+        var days = ["DIMANCHE", "LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI"];
+        var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
+        
+        var dayName = days[date.getDay()];
+        var dayNum = date.getDate();
+        var month = months[date.getMonth()];
+        var year = date.getFullYear();
+        
+        var html = '<div style="margin-bottom:20px;">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">';
+        html += '<div style="background:#1C1C2E;border-radius:20px;padding:14px 20px;">';
+        html += '<span style="font-weight:700;color:#5E5EFF;font-size:18px;">' + dayName + '</span>';
+        html += '<span style="color:#8E8E93;margin-left:12px;font-size:14px;">' + dayNum + ' ' + month + ' ' + year + '</span>';
+        html += '</div>';
+        html += '<div style="display:flex;gap:12px;">';
+        html += '<button id="prevDayBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">← Jour précédent</button>';
+        html += '<button id="nextDayBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">Jour suivant →</button>';
+        html += '</div>';
+        html += '</div>';
+        
+        if (dayCourses.length === 0) {
+          var isWeekend = (date.getDay() === 0 || date.getDay() === 6);
+          var message = isWeekend ? "Week-end - Pas de cours" : "Vacances - Pas de cours aujourd'hui";
+          html += '<div class="empty-state" style="background:#1C1C2E;border-radius:16px;padding:40px;text-align:center;">';
+          html += '<p style="color:#8E8E93;font-size:16px;">' + message + '</p>';
+          html += '</div>';
+        } else {
+          html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
+          for (var i = 0; i < dayCourses.length; i++) {
+            var cours = dayCourses[i];
+            var now = new Date();
+            var isNow = (date.toDateString() === now.toDateString() && 
+                         cours.start_date.split(' ')[1] <= formatTime(now) && 
+                         cours.end_date.split(' ')[1] >= formatTime(now));
+            var isAnnule = cours.isAnnule === true;
+            
+            html += '<div style="padding:16px 20px;border-bottom:1px solid #2C2C44;border-left:4px solid ' + (isNow ? '#5E5EFF' : (isAnnule ? '#FF5E5E' : '#2C2C44')) + ';">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">';
+            html += '<div><strong style="color:white;font-size:16px;">' + (cours.text || cours.matiere) + '</strong>';
+            if (isAnnule) html += ' <span style="color:#FF5E5E;font-size:12px;">(Annule)</span>';
+            html += '</div>';
+            html += '<div style="color:#5E5EFF;">' + cours.start_date.split(' ')[1] + ' - ' + cours.end_date.split(' ')[1] + '</div>';
+            html += '</div>';
+            html += '<div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">';
+            if (cours.prof) html += '<div style="color:#8E8E93;font-size:13px;">Prof: ' + cours.prof + '</div>';
+            if (cours.salle) html += '<div style="color:#8E8E93;font-size:13px;">Salle: ' + cours.salle + '</div>';
+            if (cours.typeCours) html += '<div style="color:#8E8E93;font-size:13px;">Type: ' + cours.typeCours + '</div>';
+            html += '</div>';
+            html += '</div>';
+          }
+          html += '</div>';
+        }
+        
+        html += '</div>';
+        contentDiv.innerHTML = html;
+        
+        document.getElementById('prevDayBtn').addEventListener('click', function() {
+          selectedDate.setDate(selectedDate.getDate() - 1);
+          var startDate = new Date(selectedDate);
+          var endDate = new Date(selectedDate);
+          fetchSchedule(startDate, endDate).then(function(courses) {
+            renderDayView(courses, selectedDate);
+          });
+        });
+        
+        document.getElementById('nextDayBtn').addEventListener('click', function() {
+          selectedDate.setDate(selectedDate.getDate() + 1);
+          var startDate = new Date(selectedDate);
+          var endDate = new Date(selectedDate);
+          fetchSchedule(startDate, endDate).then(function(courses) {
+            renderDayView(courses, selectedDate);
+          });
+        });
+      }
+      
+      function renderWeekView(courses, weekStart) {
+        var weekDays = getWeekDays(weekStart);
+        var days = ["LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI"];
+        var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
+        
+        var html = '<div style="margin-bottom:20px;">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">';
+        html += '<div style="background:#1C1C2E;border-radius:20px;padding:14px 20px;">';
+        html += '<span style="font-weight:700;color:#5E5EFF;font-size:16px;">Semaine du ' + weekDays[0].getDate() + ' ' + months[weekDays[0].getMonth()] + '</span>';
+        html += '</div>';
+        html += '<div style="display:flex;gap:12px;">';
+        html += '<button id="prevWeekBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">← Semaine précédente</button>';
+        html += '<button id="nextWeekBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">Semaine suivante →</button>';
+        html += '</div>';
+        html += '</div>';
+        
+        html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">';
+        
+        for (var i = 0; i < weekDays.length; i++) {
+          var dayDate = weekDays[i];
+          var dateStr = dayDate.toISOString().split('T')[0];
+          var dayCourses = courses.filter(function(c) { 
+            var courseDate = c.start_date.split(' ')[0];
+            return courseDate === dateStr;
+          });
+          dayCourses.sort(function(a, b) { return a.start_date.localeCompare(b.start_date); });
+          
+          var isToday = (dayDate.toDateString() === new Date().toDateString());
+          var isWeekend = (dayDate.getDay() === 0 || dayDate.getDay() === 6);
+          
+          html += '<div style="background:#1C1C2E;border-radius:16px;padding:16px;border:1px solid ' + (isToday ? '#5E5EFF' : '#2C2C44') + ';">';
+          html += '<div style="font-weight:700;color:#5E5EFF;margin-bottom:12px;">' + days[i] + '<span style="color:#8E8E93;margin-left:8px;font-size:12px;">' + dayDate.getDate() + '</span></div>';
+          
+          if (dayCourses.length === 0) {
+            if (isWeekend) {
+              html += '<div style="color:#8E8E93;font-size:12px;text-align:center;padding:20px 0;">Week-end</div>';
+            } else {
+              html += '<div style="color:#8E8E93;font-size:12px;text-align:center;padding:20px 0;">Vacances</div>';
+            }
+          } else {
+            for (var j = 0; j < dayCourses.length; j++) {
+              var cours = dayCourses[j];
+              var isAnnule = cours.isAnnule === true;
+              html += '<div style="border-bottom:1px solid #2C2C44;padding:8px 0;">';
+              html += '<div style="font-weight:600;color:white;font-size:13px;">' + (cours.text || cours.matiere) + (isAnnule ? ' <span style="color:#FF5E5E;">(Annule)</span>' : '') + '</div>';
+              html += '<div style="color:#5E5EFF;font-size:11px;">' + cours.start_date.split(' ')[1] + ' - ' + cours.end_date.split(' ')[1] + '</div>';
+              if (cours.salle) html += '<div style="color:#8E8E93;font-size:10px;">Salle: ' + cours.salle + '</div>';
+              html += '</div>';
+            }
+          }
+          
+          html += '</div>';
+        }
+        
+        html += '</div>';
+        html += '</div>';
+        contentDiv.innerHTML = html;
+        
+        document.getElementById('prevWeekBtn').addEventListener('click', function() {
+          var newWeekStart = new Date(weekStart);
+          newWeekStart.setDate(weekStart.getDate() - 7);
+          var newWeekEnd = new Date(newWeekStart);
+          newWeekEnd.setDate(newWeekStart.getDate() + 6);
+          fetchSchedule(newWeekStart, newWeekEnd).then(function(courses) {
+            renderWeekView(courses, newWeekStart);
+          });
+        });
+        
+        document.getElementById('nextWeekBtn').addEventListener('click', function() {
+          var newWeekStart = new Date(weekStart);
+          newWeekStart.setDate(weekStart.getDate() + 7);
+          var newWeekEnd = new Date(newWeekStart);
+          newWeekEnd.setDate(newWeekStart.getDate() + 6);
+          fetchSchedule(newWeekStart, newWeekEnd).then(function(courses) {
+            renderWeekView(courses, newWeekStart);
+          });
+        });
+      }
+      
+      function loadSchedule() {
+        if (viewMode === 'day') {
+          var startDate = new Date(selectedDate);
+          var endDate = new Date(selectedDate);
+          fetchSchedule(startDate, endDate).then(function(courses) {
+            renderDayView(courses, selectedDate);
+          });
+        } else {
+          var weekStart = getWeekDays(new Date())[0];
+          var weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          fetchSchedule(weekStart, weekEnd).then(function(courses) {
+            renderWeekView(courses, weekStart);
+          });
+        }
+      }
+      
+      var viewSelector = document.createElement('div');
+      viewSelector.style.cssText = 'display:flex;gap:12px;margin-bottom:24px;background:#1C1C2E;padding:8px;border-radius:16px;';
+      viewSelector.innerHTML = '<button id="dayViewBtn" style="flex:1;padding:12px;text-align:center;font-size:15px;font-weight:600;color:white;background:#5E5EFF;border:none;border-radius:12px;cursor:pointer;">Jour</button><button id="weekViewBtn" style="flex:1;padding:12px;text-align:center;font-size:15px;font-weight:600;color:white;background:transparent;border:none;border-radius:12px;cursor:pointer;">Semaine</button>';
+      
+      contentDiv.appendChild(viewSelector);
+      
+      var dayBtn = document.getElementById('dayViewBtn');
+      var weekBtn = document.getElementById('weekViewBtn');
+      
+      dayBtn.addEventListener('click', function() {
+        viewMode = 'day';
+        dayBtn.style.background = '#5E5EFF';
+        weekBtn.style.background = 'transparent';
+        selectedDate = new Date();
+        loadSchedule();
       });
+      
+      weekBtn.addEventListener('click', function() {
+        viewMode = 'week';
+        weekBtn.style.background = '#5E5EFF';
+        dayBtn.style.background = 'transparent';
+        loadSchedule();
+      });
+      
+      loadSchedule();
     }
-  }
-  
-  var searchInput = document.getElementById('carnetSearch');
-  var clearBtn = document.getElementById('clearSearch');
-  var currentFilter = "all";
-  
-  function updateMessages() {
-    var searchText = searchInput ? searchInput.value : "";
-    renderMessages(searchText, currentFilter);
-  }
-  
-  if (searchInput) {
-    searchInput.addEventListener('input', updateMessages);
-  }
-  
-  if (clearBtn) {
-    clearBtn.addEventListener('click', function() {
-      if (searchInput) searchInput.value = "";
-      updateMessages();
-    });
-  }
-  
-  var filterBtns = document.querySelectorAll('.filter-btn');
-  for (var i = 0; i < filterBtns.length; i++) {
-    filterBtns[i].addEventListener('click', function() {
-      currentFilter = this.getAttribute('data-filter');
-      for (var j = 0; j < filterBtns.length; j++) {
-        filterBtns[j].style.opacity = "0.6";
-      }
-      this.style.opacity = "1";
-      updateMessages();
-    });
-    filterBtns[i].style.opacity = i === 0 ? "1" : "0.6";
-  }
-  
-  renderMessages("", "all");
-}
 
     function renderVieScolaire() {
       var contentDiv = document.getElementById('ed-content');
@@ -1320,7 +1589,7 @@ function renderCarnet() {
           html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
           html += '<div><strong>' + a.displayDate + '</strong></div>';
           html += '<div style="color:#8E8E93;font-size:13px;">' + a.libelle + '</div>';
-          html += '<div style="color:' + (a.justifie ? '#5E5EFF' : '#FFB340') + ';font-size:13px;">' + (a.justifie ? '✓ Justifiee' : '○ Non justifiee') + '</div>';
+          html += '<div style="color:' + (a.justifie ? '#5E5EFF' : '#FFB340') + ';font-size:13px;">' + (a.justifie ? 'Justifiee' : 'Non justifiee') + '</div>';
           if (a.motif && a.motif !== "En attente de motif") {
             html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + a.motif + '</div>';
           }
@@ -1345,7 +1614,7 @@ function renderCarnet() {
           }
           html += '</div>';
           html += '<div style="color:#8E8E93;font-size:13px;">Duree: ' + r.libelle + '</div>';
-          html += '<div style="color:' + (isJustified ? '#5E5EFF' : '#FF5E5E') + ';font-size:13px;">' + (isJustified ? '✓ Justifie' : '⚠️ Non justifie') + '</div>';
+          html += '<div style="color:' + (isJustified ? '#5E5EFF' : '#FF5E5E') + ';font-size:13px;">' + (isJustified ? 'Justifie' : 'Non justifie') + '</div>';
           if (r.motif && r.motif !== "En attente de motif") {
             html += '<div style="color:#E0E0E0;font-size:13px;">Motif: ' + r.motif + '</div>';
           }
@@ -1361,7 +1630,7 @@ function renderCarnet() {
           html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
           html += '<div><strong>' + rp.displayDate + '</strong></div>';
           html += '<div style="color:#8E8E93;font-size:13px;">' + rp.libelle + '</div>';
-          html += '<div style="color:#FFB340;font-size:13px;">○ Absent</div>';
+          html += '<div style="color:#FFB340;font-size:13px;">Absent</div>';
           if (rp.commentaire && rp.commentaire !== "") {
             html += '<div style="color:#8E8E93;font-size:12px;margin-top:6px;">' + rp.commentaire.substring(0, 100) + (rp.commentaire.length > 100 ? '...' : '') + '</div>';
           }
@@ -1371,7 +1640,7 @@ function renderCarnet() {
       }
       if (punitions.length > 0) {
         html += '<div class="viescolaire-section" style="background:#1C1C2E;border-radius:16px;padding:20px;margin-bottom:20px;">';
-        html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">⚠️ Punitions</h3>';
+        html += '<h3 style="color:#FF5E5E;margin-bottom:16px;">Punitions</h3>';
         for (var i = 0; i < punitions.length; i++) {
           var p = punitions[i];
           html += '<div style="border-bottom:1px solid #2C2C44;padding:12px 0;">';
@@ -1501,7 +1770,7 @@ function renderCarnet() {
         .then(res => res.json())
         .then(function(json) {
           var msg = json.data;
-          if (!msg) { detailDiv.innerHTML = '<div style="color:#FF5E5E;text-align:center;padding:20px;">Message non trouvé</div>'; return; }
+          if (!msg) { detailDiv.innerHTML = '<div style="color:#FF5E5E;text-align:center;padding:20px;">Message non trouve</div>'; return; }
           
           var contactName = "";
           if (currentFolder === "received" && msg.from) contactName = msg.from.prenom + " " + msg.from.nom;
@@ -1525,7 +1794,7 @@ function renderCarnet() {
             attachSection.style.cssText = 'margin-top:20px;padding-top:16px;border-top:1px solid #2C2C44;';
             
             var label = document.createElement('span');
-            label.textContent = 'Pièces jointes:';
+            label.textContent = 'Pieces jointes:';
             label.style.cssText = 'color:#8E8E93;display:block;margin-bottom:8px;';
             attachSection.appendChild(label);
             
@@ -1624,8 +1893,8 @@ function renderCarnet() {
         var html = '<div style="max-width:1400px;margin:0 auto;">';
         html += '<div style="margin-bottom:24px;">';
         html += '<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;">';
-        html += '<button class="folder-btn" data-folder="received" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Reçus (' + received.length + ')</button>';
-        html += '<button class="folder-btn" data-folder="sent" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Envoyés (' + sent.length + ')</button>';
+        html += '<button class="folder-btn" data-folder="received" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Recus (' + received.length + ')</button>';
+        html += '<button class="folder-btn" data-folder="sent" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Envoyes (' + sent.length + ')</button>';
         html += '<button class="folder-btn" data-folder="draft" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Brouillons (' + draft.length + ')</button>';
         html += '<button class="folder-btn" data-folder="archived" style="padding:10px 20px;background:#2C2C44;border:none;border-radius:12px;color:white;cursor:pointer;">Archive (' + archived.length + ')</button>';
         html += '</div>';
@@ -1666,7 +1935,7 @@ function renderCarnet() {
         return;
       }
       var html = '<div style="background:#1C1C2E;border-radius:20px;padding:20px;">';
-      html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">📋 API Logs</h2>';
+      html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">API Logs</h2>';
       html += '<div style="overflow-x:auto;">';
       html += '<table style="width:100%;border-collapse:collapse;">';
       html += '<tr style="border-bottom:1px solid #2C2C44;">';
@@ -1689,56 +1958,56 @@ function renderCarnet() {
       contentDiv.innerHTML = html;
     }
 
-function renderSettings() {
-  var contentDiv = document.getElementById('ed-content');
-  if (!contentDiv) return;
-  
-  var savedNotesSur = localStorage.getItem('ed_notesSur') || '20';
-  var savedShowProfName = localStorage.getItem('ed_showProfName') === 'true';
-  
-  var html = '<div class="settings-container">';
-  html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
-  html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">Paramètres</h2>';
-  
-  html += '<div style="margin-bottom:20px;">';
-  html += '<label style="color:white;display:block;margin-bottom:8px;">Notes sur</label>';
-  html += '<input type="number" id="notesSurInput" value="' + savedNotesSur + '" step="1" min="0" max="20" style="width:100%;padding:12px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:12px;color:white;font-size:16px;">';
-  html += '<p style="color:#8E8E93;font-size:12px;margin-top:4px;">Afficher les notes sur cette valeur</p>';
-  html += '</div>';
-  
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2C2C44;">';
-  html += '<div><strong style="color:white;">Masquer le(s) nom(s) du prof</p></div>';
-  html += '<input type="checkbox" id="showProfToggle" ' + (savedShowProfName ? 'checked' : '') + ' style="width:20px;height:20px;cursor:pointer;">';
-  html += '</div>';
-  
-  html += '</div>';
-  html += '</div>';
-  
-  contentDiv.innerHTML = html;
-  
-  var notesSurInput = document.getElementById('notesSurInput');
-  var showProfToggle = document.getElementById('showProfToggle');
-  
-  function applySettings() {
-    var newNotesSur = notesSurInput.value;
-    var newShowProf = showProfToggle.checked;
-    
-    localStorage.setItem('ed_notesSur', newNotesSur);
-    localStorage.setItem('ed_showProfName', newShowProf);
-    
-    notesSur = newNotesSur;
-    showProfName = newShowProf;
-    
-    if (currentTab === 'moyennes') {
-      renderMoyennes();
-    } else if (currentTab === 'carnet') {
-      renderCarnet();
+    function renderSettings() {
+      var contentDiv = document.getElementById('ed-content');
+      if (!contentDiv) return;
+      
+      var savedNotesSur = localStorage.getItem('ed_notesSur') || '20';
+      var savedShowProfName = localStorage.getItem('ed_showProfName') === 'true';
+      
+      var html = '<div class="settings-container">';
+      html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
+      html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">Paramètres</h2>';
+      
+      html += '<div style="margin-bottom:20px;">';
+      html += '<label style="color:white;display:block;margin-bottom:8px;">Notes sur</label>';
+      html += '<input type="number" id="notesSurInput" value="' + savedNotesSur + '" step="1" min="0" max="20" style="width:100%;padding:12px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:12px;color:white;font-size:16px;">';
+      html += '</div>';
+      
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2C2C44;">';
+      html += '<div><strong style="color:white;">Masquer le(s) nom(s) du prof</strong></div>';
+      html += '<input type="checkbox" id="showProfToggle" ' + (savedShowProfName ? 'checked' : '') + ' style="width:20px;height:20px;cursor:pointer;">';
+      html += '</div>';
+      
+      html += '</div>';
+      html += '</div>';
+      
+      contentDiv.innerHTML = html;
+      
+      var notesSurInput = document.getElementById('notesSurInput');
+      var showProfToggle = document.getElementById('showProfToggle');
+      
+      function applySettings() {
+        var newNotesSur = notesSurInput.value;
+        var newShowProf = showProfToggle.checked;
+        
+        localStorage.setItem('ed_notesSur', newNotesSur);
+        localStorage.setItem('ed_showProfName', newShowProf);
+        
+        notesSur = newNotesSur;
+        showProfName = newShowProf;
+        
+        if (currentTab === 'moyennes') {
+          renderMoyennes();
+        } else if (currentTab === 'carnet') {
+          renderCarnet();
+        }
+      }
+      
+      notesSurInput.addEventListener('change', applySettings);
+      showProfToggle.addEventListener('change', applySettings);
     }
-  }
-  
-  notesSurInput.addEventListener('change', applySettings);
-  showProfToggle.addEventListener('change', applySettings);
-}
+
     function renderEspaceTravail() {
       var contentDiv = document.getElementById('ed-content');
       if (!contentDiv) return;
@@ -2092,6 +2361,9 @@ function renderSettings() {
       } else if (currentTab === "settings") {
         renderSettings();
         window.showRefreshFab(false);
+      } else if (currentTab === "emploidutemps") {
+        renderEmploiDuTemps();
+        window.showRefreshFab(false);
       }
     }
 
@@ -2162,6 +2434,7 @@ function renderSettings() {
           <button class="tab-btn" data-tab="home">Accueil</button>
           <button class="tab-btn" data-tab="moyennes">Notes</button>
           <button class="tab-btn" data-tab="devoirs">Devoirs</button>
+          <button class="tab-btn" data-tab="emploidutemps">Emploi du temps</button>
           <button class="tab-btn" data-tab="espacetravail">Espace travail</button>
           <button class="tab-btn" data-tab="carnet">Carnet</button>
           <button class="tab-btn" data-tab="viescolaire">Vie scolaire</button>
@@ -2267,5 +2540,5 @@ function renderSettings() {
 })();
 
 /* ===================
-   Script End ✨
+   Script End
 =================== */
