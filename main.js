@@ -1301,273 +1301,397 @@
       renderMessages("", "all");
     }
 
-    function renderEmploiDuTemps() {
-      var contentDiv = document.getElementById('ed-content');
-      if (!contentDiv) return;
-      contentDiv.innerHTML = '';
-      
-      var viewMode = 'day';
-      var selectedDate = new Date();
-      var currentCourses = [];
-      
-      function formatTime(dateStr) {
-        var date = new Date(dateStr);
-        return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
-      }
-      
-      function getWeekDays(date) {
-        var weekDays = [];
-        var monday = new Date(date);
-        var day = monday.getDay();
-        var diff = monday.getDate() - day + (day === 0 ? -6 : 1);
-        monday.setDate(diff);
-        
-        for (var i = 0; i < 5; i++) {
-          var dayDate = new Date(monday);
-          dayDate.setDate(monday.getDate() + i);
-          weekDays.push(dayDate);
-        }
-        return weekDays;
-      }
-      
-      async function fetchSchedule(startDate, endDate) {
-        contentDiv.innerHTML = '<div class="empty-state"><p>Chargement...</p></div>';
-        
-        try {
-          var body = {
-            dateDebut: startDate.toISOString().split('T')[0],
-            dateFin: endDate.toISOString().split('T')[0],
-            avecTrous: false
-          };
-          
-          var res = await fetch(`https://api.ecoledirecte.com/v3/E/${id}/emploidutemps.awp?verbe=get&v=4.98.0`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-              "X-Token": token
-            },
-            body: "data=" + encodeURIComponent(JSON.stringify(body))
-          });
-          
-          var json = await res.json();
-          if (json.code === 200 && Array.isArray(json.data)) {
-            return json.data;
-          }
-          return [];
-        } catch(e) {
-          return [];
-        }
-      }
-      
-      function groupByDay(courses, date) {
-        var dateStr = date.toISOString().split('T')[0];
-        return courses.filter(function(c) { 
-          var courseDate = c.start_date.split(' ')[0];
-          return courseDate === dateStr;
-        });
-      }
-      
-      function renderDayView(courses, date) {
-        var dayCourses = groupByDay(courses, date);
-        dayCourses.sort(function(a, b) { return a.start_date.localeCompare(b.start_date); });
-        
-        var days = ["DIMANCHE", "LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI"];
-        var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
-        
-        var dayName = days[date.getDay()];
-        var dayNum = date.getDate();
-        var month = months[date.getMonth()];
-        var year = date.getFullYear();
-        
-        var html = '<div style="margin-bottom:20px;">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">';
-        html += '<div style="background:#1C1C2E;border-radius:20px;padding:14px 20px;">';
-        html += '<span style="font-weight:700;color:#5E5EFF;font-size:18px;">' + dayName + '</span>';
-        html += '<span style="color:#8E8E93;margin-left:12px;font-size:14px;">' + dayNum + ' ' + month + ' ' + year + '</span>';
-        html += '</div>';
-        html += '<div style="display:flex;gap:12px;">';
-        html += '<button id="prevDayBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">← Jour précédent</button>';
-        html += '<button id="nextDayBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">Jour suivant →</button>';
-        html += '</div>';
-        html += '</div>';
-        
-        if (dayCourses.length === 0) {
-          var isWeekend = (date.getDay() === 0 || date.getDay() === 6);
-          var message = isWeekend ? "Week-end - Pas de cours" : "Vacances - Pas de cours aujourd'hui";
-          html += '<div class="empty-state" style="background:#1C1C2E;border-radius:16px;padding:40px;text-align:center;">';
-          html += '<p style="color:#8E8E93;font-size:16px;">' + message + '</p>';
-          html += '</div>';
-        } else {
-          html += '<div style="background:#1C1C2E;border-radius:16px;overflow:hidden;">';
-          for (var i = 0; i < dayCourses.length; i++) {
-            var cours = dayCourses[i];
-            var now = new Date();
-            var isNow = (date.toDateString() === now.toDateString() && 
-                         cours.start_date.split(' ')[1] <= formatTime(now) && 
-                         cours.end_date.split(' ')[1] >= formatTime(now));
-            var isAnnule = cours.isAnnule === true;
-            
-            html += '<div style="padding:16px 20px;border-bottom:1px solid #2C2C44;border-left:4px solid ' + (isNow ? '#5E5EFF' : (isAnnule ? '#FF5E5E' : '#2C2C44')) + ';">';
-            html += '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">';
-            html += '<div><strong style="color:white;font-size:16px;">' + (cours.text || cours.matiere) + '</strong>';
-            if (isAnnule) html += ' <span style="color:#FF5E5E;font-size:12px;">(Annule)</span>';
-            html += '</div>';
-            html += '<div style="color:#5E5EFF;">' + cours.start_date.split(' ')[1] + ' - ' + cours.end_date.split(' ')[1] + '</div>';
-            html += '</div>';
-            html += '<div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap;">';
-            if (cours.prof) html += '<div style="color:#8E8E93;font-size:13px;">Prof: ' + cours.prof + '</div>';
-            if (cours.salle) html += '<div style="color:#8E8E93;font-size:13px;">Salle: ' + cours.salle + '</div>';
-            if (cours.typeCours) html += '<div style="color:#8E8E93;font-size:13px;">Type: ' + cours.typeCours + '</div>';
-            html += '</div>';
-            html += '</div>';
-          }
-          html += '</div>';
-        }
-        
-        html += '</div>';
-        contentDiv.innerHTML = html;
-        
-        document.getElementById('prevDayBtn').addEventListener('click', function() {
-          selectedDate.setDate(selectedDate.getDate() - 1);
-          var startDate = new Date(selectedDate);
-          var endDate = new Date(selectedDate);
-          fetchSchedule(startDate, endDate).then(function(courses) {
-            renderDayView(courses, selectedDate);
-          });
-        });
-        
-        document.getElementById('nextDayBtn').addEventListener('click', function() {
-          selectedDate.setDate(selectedDate.getDate() + 1);
-          var startDate = new Date(selectedDate);
-          var endDate = new Date(selectedDate);
-          fetchSchedule(startDate, endDate).then(function(courses) {
-            renderDayView(courses, selectedDate);
-          });
-        });
-      }
-      
-      function renderWeekView(courses, weekStart) {
-        var weekDays = getWeekDays(weekStart);
-        var days = ["LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI"];
-        var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
-        
-        var html = '<div style="margin-bottom:20px;">';
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">';
-        html += '<div style="background:#1C1C2E;border-radius:20px;padding:14px 20px;">';
-        html += '<span style="font-weight:700;color:#5E5EFF;font-size:16px;">Semaine du ' + weekDays[0].getDate() + ' ' + months[weekDays[0].getMonth()] + '</span>';
-        html += '</div>';
-        html += '<div style="display:flex;gap:12px;">';
-        html += '<button id="prevWeekBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">← Semaine précédente</button>';
-        html += '<button id="nextWeekBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">Semaine suivante →</button>';
-        html += '</div>';
-        html += '</div>';
-        
-        html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;">';
-        
-        for (var i = 0; i < weekDays.length; i++) {
-          var dayDate = weekDays[i];
-          var dateStr = dayDate.toISOString().split('T')[0];
-          var dayCourses = courses.filter(function(c) { 
-            var courseDate = c.start_date.split(' ')[0];
-            return courseDate === dateStr;
-          });
-          dayCourses.sort(function(a, b) { return a.start_date.localeCompare(b.start_date); });
-          
-          var isToday = (dayDate.toDateString() === new Date().toDateString());
-          var isWeekend = (dayDate.getDay() === 0 || dayDate.getDay() === 6);
-          
-          html += '<div style="background:#1C1C2E;border-radius:16px;padding:16px;border:1px solid ' + (isToday ? '#5E5EFF' : '#2C2C44') + ';">';
-          html += '<div style="font-weight:700;color:#5E5EFF;margin-bottom:12px;">' + days[i] + '<span style="color:#8E8E93;margin-left:8px;font-size:12px;">' + dayDate.getDate() + '</span></div>';
-          
-          if (dayCourses.length === 0) {
-            if (isWeekend) {
-              html += '<div style="color:#8E8E93;font-size:12px;text-align:center;padding:20px 0;">Week-end</div>';
-            } else {
-              html += '<div style="color:#8E8E93;font-size:12px;text-align:center;padding:20px 0;">Vacances</div>';
-            }
-          } else {
-            for (var j = 0; j < dayCourses.length; j++) {
-              var cours = dayCourses[j];
-              var isAnnule = cours.isAnnule === true;
-              html += '<div style="border-bottom:1px solid #2C2C44;padding:8px 0;">';
-              html += '<div style="font-weight:600;color:white;font-size:13px;">' + (cours.text || cours.matiere) + (isAnnule ? ' <span style="color:#FF5E5E;">(Annule)</span>' : '') + '</div>';
-              html += '<div style="color:#5E5EFF;font-size:11px;">' + cours.start_date.split(' ')[1] + ' - ' + cours.end_date.split(' ')[1] + '</div>';
-              if (cours.salle) html += '<div style="color:#8E8E93;font-size:10px;">Salle: ' + cours.salle + '</div>';
-              html += '</div>';
-            }
-          }
-          
-          html += '</div>';
-        }
-        
-        html += '</div>';
-        html += '</div>';
-        contentDiv.innerHTML = html;
-        
-        document.getElementById('prevWeekBtn').addEventListener('click', function() {
-          var newWeekStart = new Date(weekStart);
-          newWeekStart.setDate(weekStart.getDate() - 7);
-          var newWeekEnd = new Date(newWeekStart);
-          newWeekEnd.setDate(newWeekStart.getDate() + 6);
-          fetchSchedule(newWeekStart, newWeekEnd).then(function(courses) {
-            renderWeekView(courses, newWeekStart);
-          });
-        });
-        
-        document.getElementById('nextWeekBtn').addEventListener('click', function() {
-          var newWeekStart = new Date(weekStart);
-          newWeekStart.setDate(weekStart.getDate() + 7);
-          var newWeekEnd = new Date(newWeekStart);
-          newWeekEnd.setDate(newWeekStart.getDate() + 6);
-          fetchSchedule(newWeekStart, newWeekEnd).then(function(courses) {
-            renderWeekView(courses, newWeekStart);
-          });
-        });
-      }
-      
-      function loadSchedule() {
-        if (viewMode === 'day') {
-          var startDate = new Date(selectedDate);
-          var endDate = new Date(selectedDate);
-          fetchSchedule(startDate, endDate).then(function(courses) {
-            renderDayView(courses, selectedDate);
-          });
-        } else {
-          var weekStart = getWeekDays(new Date())[0];
-          var weekEnd = new Date(weekStart);
-          weekEnd.setDate(weekStart.getDate() + 6);
-          fetchSchedule(weekStart, weekEnd).then(function(courses) {
-            renderWeekView(courses, weekStart);
-          });
-        }
-      }
-      
-      var viewSelector = document.createElement('div');
-      viewSelector.style.cssText = 'display:flex;gap:12px;margin-bottom:24px;background:#1C1C2E;padding:8px;border-radius:16px;';
-      viewSelector.innerHTML = '<button id="dayViewBtn" style="flex:1;padding:12px;text-align:center;font-size:15px;font-weight:600;color:white;background:#5E5EFF;border:none;border-radius:12px;cursor:pointer;">Jour</button><button id="weekViewBtn" style="flex:1;padding:12px;text-align:center;font-size:15px;font-weight:600;color:white;background:transparent;border:none;border-radius:12px;cursor:pointer;">Semaine</button>';
-      
-      contentDiv.appendChild(viewSelector);
-      
-      var dayBtn = document.getElementById('dayViewBtn');
-      var weekBtn = document.getElementById('weekViewBtn');
-      
-      dayBtn.addEventListener('click', function() {
-        viewMode = 'day';
-        dayBtn.style.background = '#5E5EFF';
-        weekBtn.style.background = 'transparent';
-        selectedDate = new Date();
-        loadSchedule();
-      });
-      
-      weekBtn.addEventListener('click', function() {
-        viewMode = 'week';
-        weekBtn.style.background = '#5E5EFF';
-        dayBtn.style.background = 'transparent';
-        loadSchedule();
-      });
-      
-      loadSchedule();
+function renderEmploiDuTemps() {
+  var contentDiv = document.getElementById('ed-content');
+  if (!contentDiv) return;
+  
+  var viewMode = 'day';
+  var selectedDate = new Date();
+  var weekStartDate = getWeekDays(new Date())[0];
+  
+  function formatTime(dateStr) {
+    var date = new Date(dateStr);
+    return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+  }
+  
+  function getMinutesFromTime(timeStr) {
+    var parts = timeStr.split(':');
+    return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+  }
+  
+  function formatTimeFromMinutes(minutes) {
+    var hours = Math.floor(minutes / 60);
+    var mins = minutes % 60;
+    return hours.toString().padStart(2, '0') + ':' + mins.toString().padStart(2, '0');
+  }
+  
+  function getWeekDays(date) {
+    var weekDays = [];
+    var monday = new Date(date);
+    var day = monday.getDay();
+    var diff = monday.getDate() - day + (day === 0 ? -6 : 1);
+    monday.setDate(diff);
+    
+    for (var i = 0; i < 5; i++) {
+      var dayDate = new Date(monday);
+      dayDate.setDate(monday.getDate() + i);
+      weekDays.push(dayDate);
     }
+    return weekDays;
+  }
+  
+  async function fetchSchedule(startDate, endDate) {
+    try {
+      var body = {
+        dateDebut: startDate.toISOString().split('T')[0],
+        dateFin: endDate.toISOString().split('T')[0],
+        avecTrous: true
+      };
+      
+      var res = await fetch(`https://api.ecoledirecte.com/v3/E/${id}/emploidutemps.awp?verbe=get&v=4.98.0`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-Token": token
+        },
+        body: "data=" + encodeURIComponent(JSON.stringify(body))
+      });
+      
+      var json = await res.json();
+      
+      if (json.code === 200 && Array.isArray(json.data)) {
+        return json.data;
+      }
+      return [];
+    } catch(e) {
+      return [];
+    }
+  }
+  
+  function groupByDay(courses, date) {
+    var dateStr = date.toISOString().split('T')[0];
+    return courses.filter(function(c) { 
+      var courseDate = c.start_date.split(' ')[0];
+      return courseDate === dateStr;
+    });
+  }
+  
+function getTimeSlots(courses) {
+  if (!courses || courses.length === 0) return [];
+  
+  var sorted = courses.slice().sort(function(a, b) {
+    return getMinutesFromTime(a.start_date.split(' ')[1]) - 
+           getMinutesFromTime(b.start_date.split(' ')[1]);
+  });
+  
+  var realClasses = [];
+  for (var i = 0; i < sorted.length; i++) {
+    var c = sorted[i];
+    var isPasDeCours = !c.matiere || c.matiere === "Pas de cours" || c.matiere.trim() === "" || c.text === "Pas de cours";
+    if (!isPasDeCours) {
+      realClasses.push(c);
+    }
+  }
+  
+  if (realClasses.length === 0) return [];
+  
+  var merged = [];
+  var current = realClasses[0];
+  var currentEndMin = getMinutesFromTime(current.end_date.split(' ')[1]);
+  
+  for (var i = 1; i < realClasses.length; i++) {
+    var next = realClasses[i];
+    var nextStartMin = getMinutesFromTime(next.start_date.split(' ')[1]);
+    var gap = nextStartMin - currentEndMin;
+    
+    var sameSubject = current.matiere === next.matiere;
+    var sameTeacher = current.prof === next.prof;
+    var sameRoom = current.salle === next.salle;
+    
+    if (sameSubject && sameTeacher && sameRoom && gap <= 5) {
+      current.end_date = next.end_date;
+      currentEndMin = getMinutesFromTime(current.end_date.split(' ')[1]);
+    } else {
+      merged.push(current);
+      current = next;
+      currentEndMin = getMinutesFromTime(current.end_date.split(' ')[1]);
+    }
+  }
+  merged.push(current);
+  
+  var slots = [];
+  var previousEnd = null;
+  
+  for (var i = 0; i < merged.length; i++) {
+    var cours = merged[i];
+    var startTime = cours.start_date.split(' ')[1];
+    var endTime = cours.end_date.split(' ')[1];
+    var startMin = getMinutesFromTime(startTime);
+    var endMin = getMinutesFromTime(endTime);
+    
+    if (previousEnd !== null) {
+      var gap = startMin - previousEnd;
+      
+      if (gap > 0) {
+        var gapType = "";
+        
+        if (gap <= 5) {
+          gapType = "intercours";
+        } else if (gap < 30) {
+          gapType = "recess";
+        } else {
+          gapType = "lunch";
+        }
+        
+        slots.push({
+          start: formatTimeFromMinutes(previousEnd),
+          end: formatTimeFromMinutes(startMin),
+          type: gapType,
+          courses: []
+        });
+      }
+    }
+    
+    slots.push({
+      start: startTime,
+      end: endTime,
+      type: "course",
+      courses: [cours]
+    });
+    
+    previousEnd = endMin;
+  }
+  
+  return slots;
+}
+  
+function renderDayView(courses, date) {
+  var dayCourses = groupByDay(courses, date);
+  var timeSlots = getTimeSlots(dayCourses);
+  
+  var days = ["DIMANCHE", "LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI", "SAMEDI"];
+  var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
+  
+  var dayName = days[date.getDay()];
+  var dayNum = date.getDate();
+  var month = months[date.getMonth()];
+  var year = date.getFullYear();
+  
+  var html = '<div style="margin-bottom:20px;">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">';
+  html += '<div style="background:#1C1C2E;border-radius:20px;padding:14px 20px;">';
+  html += '<span style="font-weight:700;color:#5E5EFF;font-size:18px;">' + dayName + '</span>';
+  html += '<span style="color:#8E8E93;margin-left:12px;font-size:14px;">' + dayNum + ' ' + month + ' ' + year + '</span>';
+  html += '</div>';
+  html += '<div style="display:flex;gap:12px;">';
+  html += '<button id="prevDayBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">← Jour précédent</button>';
+  html += '<button id="nextDayBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">Jour suivant →</button>';
+  html += '</div>';
+  html += '</div>';
+  
+  if (timeSlots.length === 0) {
+    html += '<div style="background:#1C1C2E;border-radius:16px;padding:40px;text-align:center;color:#8E8E93;">Aucun cours aujourd\'hui</div>';
+  } else {
+    for (var i = 0; i < timeSlots.length; i++) {
+      var slot = timeSlots[i];
+      
+      if (slot.type === "course") {
+        var cours = slot.courses[0];
+        var isAnnule = cours.isAnnule === true;
+        var now = new Date();
+        var isNow = (date.toDateString() === now.toDateString() && 
+                     slot.start <= formatTime(now) && 
+                     slot.end >= formatTime(now));
+        
+        var startMin = getMinutesFromTime(slot.start);
+        var endMin = getMinutesFromTime(slot.end);
+        var durationMin = endMin - startMin;
+        var heightPx = Math.max(60, (durationMin / 60) * 70);
+        
+        html += '<div style="background:#1C1C2E;border-radius:12px;margin-bottom:4px;border-left:4px solid ' + (isNow ? '#5E5EFF' : (isAnnule ? '#FF5E5E' : '#2C2C44')) + ';overflow:hidden;height:' + heightPx + 'px;display:flex;align-items:center;">';
+        html += '<div style="display:flex;padding:12px 16px;width:100%;">';
+        html += '<div style="width:80px;flex-shrink:0;">';
+        html += '<div style="color:#5E5EFF;font-size:13px;font-weight:500;">' + slot.start + '</div>';
+        html += '<div style="color:#5E5EFF;font-size:11px;">' + slot.end + '</div>';
+        html += '</div>';
+        html += '<div style="flex:1;">';
+        html += '<div style="font-weight:600;color:white;font-size:15px;">' + (cours.text || cours.matiere) + '</div>';
+        html += '<div style="display:flex;gap:16px;margin-top:6px;flex-wrap:wrap;">';
+        if (cours.prof) html += '<div style="color:#8E8E93;font-size:12px;">Prof: ' + cours.prof + '</div>';
+        if (cours.salle) html += '<div style="color:#8E8E93;font-size:12px;">Salle: ' + cours.salle + '</div>';
+        if (cours.typeCours) html += '<div style="color:#8E8E93;font-size:12px;">Type: ' + cours.typeCours + '</div>';
+        html += '</div>';
+        if (isAnnule) html += '<div style="color:#FF5E5E;font-size:11px;margin-top:4px;">Annulé</div>';
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+      } else if (slot.type === "intercours") {
+        html += '<div style="height:2px;"></div>';
+      } else if (slot.type === "recess") {
+        var gapHeight = Math.max(20, (getMinutesFromTime(slot.end) - getMinutesFromTime(slot.start)) / 60 * 40);
+        html += '<div style="height:' + gapHeight + 'px;"></div>';
+      } else if (slot.type === "lunch") {
+        var gapHeight = Math.max(60, (getMinutesFromTime(slot.end) - getMinutesFromTime(slot.start)) / 60 * 60);
+        html += '<div style="height:' + gapHeight + 'px;"></div>';
+      }
+    }
+  }
+  
+  html += '</div>';
+  return html;
+}
+  
+function renderWeekView(courses, weekStart) {
+  var weekDays = getWeekDays(weekStart);
+  var days = ["LUNDI", "MARDI", "MERCREDI", "JEUDI", "VENDREDI"];
+  var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
+  
+  var html = '<div style="margin-bottom:20px;">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;">';
+  html += '<div style="background:#1C1C2E;border-radius:20px;padding:14px 20px;">';
+  html += '<span style="font-weight:700;color:#5E5EFF;font-size:16px;">Semaine du ' + weekDays[0].getDate() + ' ' + months[weekDays[0].getMonth()] + '</span>';
+  html += '</div>';
+  html += '<div style="display:flex;gap:12px;">';
+  html += '<button id="prevWeekBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">← Semaine précédente</button>';
+  html += '<button id="nextWeekBtn" style="background:#2C2C44;border:none;color:white;padding:10px 16px;border-radius:12px;cursor:pointer;">Semaine suivante →</button>';
+  html += '</div>';
+  html += '</div>';
+  
+  html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;min-height:600px;">';
+  
+  for (var i = 0; i < weekDays.length; i++) {
+    var dayDate = weekDays[i];
+    var dateStr = dayDate.toISOString().split('T')[0];
+    var dayCourses = courses.filter(function(c) { 
+      var courseDate = c.start_date.split(' ')[0];
+      return courseDate === dateStr;
+    });
+    
+    var timeSlots = getTimeSlots(dayCourses);
+    var isToday = (dayDate.toDateString() === new Date().toDateString());
+    
+    html += '<div style="background:#1C1C2E;border-radius:16px;padding:16px;border:1px solid ' + (isToday ? '#5E5EFF' : '#2C2C44') + ';min-height:500px;display:flex;flex-direction:column;">';
+    html += '<div style="font-weight:700;color:#5E5EFF;margin-bottom:12px;">' + days[i] + '<span style="color:#8E8E93;margin-left:8px;font-size:12px;">' + dayDate.getDate() + '</span></div>';
+    
+    if (timeSlots.length === 0) {
+      html += '<div style="flex:1;display:flex;align-items:center;justify-content:center;color:#8E8E93;font-size:13px;">Aucun cours</div>';
+    } else {
+      html += '<div style="flex:1;overflow-y:auto;">';
+      for (var s = 0; s < timeSlots.length; s++) {
+        var slot = timeSlots[s];
+        
+        if (slot.type === "course") {
+          var cours = slot.courses[0];
+          var isAnnule = cours.isAnnule === true;
+          html += '<div style="background:#0B0B1A;border-radius:10px;padding:8px;margin-bottom:8px;border-left:3px solid ' + (isAnnule ? '#FF5E5E' : '#5E5EFF') + ';">';
+          html += '<div style="font-size:10px;color:#5E5EFF;margin-bottom:4px;">' + slot.start + ' - ' + slot.end + '</div>';
+          html += '<div style="font-size:13px;font-weight:500;color:white;">' + (cours.text || cours.matiere) + '</div>';
+          if (cours.salle) html += '<div style="font-size:10px;color:#8E8E93;margin-top:2px;">' + cours.salle + '</div>';
+          if (isAnnule) html += '<div style="font-size:10px;color:#FF5E5E;margin-top:2px;">Annulé</div>';
+          html += '</div>';
+        } else if (slot.type === "intercours") {
+          html += '<div style="height:2px;"></div>';
+        } else if (slot.type === "recess") {
+          var gapHeight = Math.max(20, (getMinutesFromTime(slot.end) - getMinutesFromTime(slot.start)) / 60 * 40);
+          html += '<div style="height:' + gapHeight + 'px;"></div>';
+        } else if (slot.type === "lunch") {
+          var gapHeight = Math.max(60, (getMinutesFromTime(slot.end) - getMinutesFromTime(slot.start)) / 60 * 60);
+          html += '<div style="height:' + gapHeight + 'px;"></div>';
+        }
+      }
+      html += '</div>';
+    }
+    
+    html += '</div>';
+  }
+  
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+  
+  var html = '';
+  html += '<div style="display:flex;gap:12px;margin-bottom:24px;background:#1C1C2E;padding:8px;border-radius:16px;">';
+  html += '<button id="dayViewBtn" style="flex:1;padding:12px;text-align:center;font-size:15px;font-weight:600;color:white;background:#5E5EFF;border:none;border-radius:12px;cursor:pointer;">Jour</button>';
+  html += '<button id="weekViewBtn" style="flex:1;padding:12px;text-align:center;font-size:15px;font-weight:600;color:white;background:transparent;border:none;border-radius:12px;cursor:pointer;">Semaine</button>';
+  html += '</div>';
+  html += '<div id="scheduleDisplay"></div>';
+  
+  contentDiv.innerHTML = html;
+  
+  var displayDiv = document.getElementById('scheduleDisplay');
+  var dayBtn = document.getElementById('dayViewBtn');
+  var weekBtn = document.getElementById('weekViewBtn');
+  
+  function loadDayView() {
+    var startDate = new Date(selectedDate);
+    var endDate = new Date(selectedDate);
+    fetchSchedule(startDate, endDate).then(function(courses) {
+      var rendered = renderDayView(courses, selectedDate);
+      displayDiv.innerHTML = rendered;
+      setTimeout(function() {
+        var prevBtn = document.getElementById('prevDayBtn');
+        var nextBtn = document.getElementById('nextDayBtn');
+        if (prevBtn) {
+          prevBtn.addEventListener('click', function() {
+            selectedDate.setDate(selectedDate.getDate() - 1);
+            loadDayView();
+          });
+        }
+        if (nextBtn) {
+          nextBtn.addEventListener('click', function() {
+            selectedDate.setDate(selectedDate.getDate() + 1);
+            loadDayView();
+          });
+        }
+      }, 100);
+    });
+  }
+  
+  function loadWeekView() {
+    var startDate = new Date(weekStartDate);
+    var endDate = new Date(weekStartDate);
+    endDate.setDate(weekStartDate.getDate() + 6);
+    fetchSchedule(startDate, endDate).then(function(courses) {
+      var rendered = renderWeekView(courses, weekStartDate);
+      displayDiv.innerHTML = rendered;
+      setTimeout(function() {
+        var prevBtn = document.getElementById('prevWeekBtn');
+        var nextBtn = document.getElementById('nextWeekBtn');
+        if (prevBtn) {
+          prevBtn.addEventListener('click', function() {
+            weekStartDate.setDate(weekStartDate.getDate() - 7);
+            loadWeekView();
+          });
+        }
+        if (nextBtn) {
+          nextBtn.addEventListener('click', function() {
+            weekStartDate.setDate(weekStartDate.getDate() + 7);
+            loadWeekView();
+          });
+        }
+      }, 100);
+    });
+  }
+  
+  dayBtn.addEventListener('click', function() {
+    viewMode = 'day';
+    dayBtn.style.background = '#5E5EFF';
+    weekBtn.style.background = 'transparent';
+    selectedDate = new Date();
+    loadDayView();
+  });
+  
+  weekBtn.addEventListener('click', function() {
+    viewMode = 'week';
+    weekBtn.style.background = '#5E5EFF';
+    dayBtn.style.background = 'transparent';
+    weekStartDate = getWeekDays(new Date())[0];
+    loadWeekView();
+  });
+ 
+  loadDayView();
+}
 
     function renderVieScolaire() {
       var contentDiv = document.getElementById('ed-content');
