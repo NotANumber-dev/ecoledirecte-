@@ -2082,55 +2082,272 @@ function renderWeekView(courses, weekStart) {
       contentDiv.innerHTML = html;
     }
 
-    function renderSettings() {
-      var contentDiv = document.getElementById('ed-content');
-      if (!contentDiv) return;
+function renderSettings() {
+  var contentDiv = document.getElementById('ed-content');
+  if (!contentDiv) return;
+  
+  var savedNotesSur = localStorage.getItem('ed_notesSur') || '20';
+  var savedShowProfName = localStorage.getItem('ed_showProfName') === 'true';
+  var savedTheme = localStorage.getItem('ed_theme') || 'ED-classic';
+  
+  var html = '<div class="settings-container">';
+  html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
+  html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">Paramètres</h2>';
+  
+  html += '<div style="margin-bottom:20px;">';
+  html += '<label style="color:white;display:block;margin-bottom:8px;">Notes sur</label>';
+  html += '<input type="number" id="notesSurInput" value="' + savedNotesSur + '" step="1" min="0" max="20" style="width:100%;padding:12px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:12px;color:white;font-size:16px;">';
+  html += '</div>';
+  
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2C2C44;">';
+  html += '<div><strong style="color:white;">Masquer le(s) nom(s) du prof</strong></div>';
+  html += '<input type="checkbox" id="showProfToggle" ' + (savedShowProfName ? 'checked' : '') + ' style="width:20px;height:20px;cursor:pointer;">';
+  html += '</div>';
+  
+  html += '<div style="margin-top:20px;">';
+  html += '<label style="color:white;display:block;margin-bottom:8px;">Thème</label>';
+  html += '<select id="themeSelect" style="width:100%;padding:12px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:12px;color:white;font-size:16px;">';
+  
+  var themeNames = ["ED-classic", "Solar Flare", "Neon Tide", "Dusk", "Arctic", "Glacier", "Emerald", "Blaze", "Solar", "ED-light", "ED-OLED", "custom1", "custom2", "feu", "world"];
+  for (var i = 0; i < themeNames.length; i++) {
+    var theme = themeNames[i];
+    var selected = theme === savedTheme ? 'selected' : '';
+    html += '<option value="' + theme + '" ' + selected + '>' + theme + '</option>';
+  }
+  
+  html += '</select>';
+  html += '</div>';
+  html += '<div style="margin-top:30px;padding-top:20px;border-top:1px solid #2C2C44;">';
+  html += '<div style="display:flex;flex-direction:column;gap:12px;">';
+  html += '<button id="eraseBtn" style="width:100%;padding:14px;background:#FF2D2D;border:none;border-radius:12px;color:white;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.3s ease;">tout effacer</button>';
+  html += '<div id="slideConfirm" style="display:none;background:#1C1C2E;border-radius:12px;padding:4px;position:relative;height:50px;overflow:hidden;">';
+  html += '<div id="slideTrack" style="width:100%;height:100%;background:#2C2C44;border-radius:10px;position:relative;">';
+  html += '<div id="slideHandle" style="width:50px;height:50px;background:#FF2D2D;border-radius:10px;position:absolute;left:0;top:0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:600;transition:left 0.1s ease;z-index:2;">→</div>';
+  html += '<div id="slideText" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#8E8E93;font-size:14px;pointer-events:none;z-index:1;">glisse moi pour confirmer</div>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+  html += '<div style="margin-top:20px;padding-top:20px;border-top:1px solid #2C2C44;">';
+  html += '<button id="infoBtn" style="width:100%;padding:14px;background:#2C2C44;border:none;border-radius:12px;color:#5E5EFF;font-size:16px;font-weight:600;cursor:pointer;">Info</button>';
+  html += '</div>';
+  
+  html += '</div>';
+  html += '</div>';
+  
+  contentDiv.innerHTML = html;
+  
+  var notesSurInput = document.getElementById('notesSurInput');
+  var showProfToggle = document.getElementById('showProfToggle');
+  var themeSelect = document.getElementById('themeSelect');
+  var eraseBtn = document.getElementById('eraseBtn');
+  var slideConfirm = document.getElementById('slideConfirm');
+  var slideHandle = document.getElementById('slideHandle');
+  var slideTrack = document.getElementById('slideTrack');
+  
+  function applySettings() {
+    var newNotesSur = notesSurInput.value;
+    var newShowProf = showProfToggle.checked;
+    var newTheme = themeSelect.value;
+    
+    localStorage.setItem('ed_notesSur', newNotesSur);
+    localStorage.setItem('ed_showProfName', newShowProf);
+    localStorage.setItem('ed_theme', newTheme);
+    
+    notesSur = newNotesSur;
+    showProfName = newShowProf;
+    
+    applyTheme(newTheme);
+    
+    if (currentTab === 'moyennes') {
+      renderMoyennes();
+    } else if (currentTab === 'carnet') {
+      renderCarnet();
+    } else if (currentTab === 'home') {
+      renderHome();
+    }
+  }
+  
+  notesSurInput.addEventListener('change', applySettings);
+  showProfToggle.addEventListener('change', applySettings);
+  themeSelect.addEventListener('change', applySettings);
+  eraseBtn.addEventListener('click', function() {
+    slideConfirm.style.display = 'block';
+    slideHandle.style.left = '0px';
+  });
+  var isDragging = false;
+  var startX = 0;
+  var handleWidth = 50;
+  var trackWidth = 0;
+  
+  slideHandle.addEventListener('mousedown', function(e) {
+    isDragging = true;
+    startX = e.clientX;
+    trackWidth = slideTrack.offsetWidth;
+    document.body.style.userSelect = 'none';
+  });
+  
+  document.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    var delta = e.clientX - startX;
+    var newLeft = Math.max(0, Math.min(trackWidth - handleWidth, delta));
+    slideHandle.style.left = newLeft + 'px';
+    
+    if (newLeft >= trackWidth - handleWidth - 5) {
+      isDragging = false;
+      document.body.style.userSelect = '';
       
-      var savedNotesSur = localStorage.getItem('ed_notesSur') || '20';
-      var savedShowProfName = localStorage.getItem('ed_showProfName') === 'true';
-      
-      var html = '<div class="settings-container">';
-      html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
-      html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">Paramètres</h2>';
-      
-      html += '<div style="margin-bottom:20px;">';
-      html += '<label style="color:white;display:block;margin-bottom:8px;">Notes sur</label>';
-      html += '<input type="number" id="notesSurInput" value="' + savedNotesSur + '" step="1" min="0" max="20" style="width:100%;padding:12px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:12px;color:white;font-size:16px;">';
-      html += '</div>';
-      
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2C2C44;">';
-      html += '<div><strong style="color:white;">Masquer le(s) nom(s) du prof</strong></div>';
-      html += '<input type="checkbox" id="showProfToggle" ' + (savedShowProfName ? 'checked' : '') + ' style="width:20px;height:20px;cursor:pointer;">';
-      html += '</div>';
-      
-      html += '</div>';
-      html += '</div>';
-      
-      contentDiv.innerHTML = html;
-      
-      var notesSurInput = document.getElementById('notesSurInput');
-      var showProfToggle = document.getElementById('showProfToggle');
-      
-      function applySettings() {
-        var newNotesSur = notesSurInput.value;
-        var newShowProf = showProfToggle.checked;
-        
-        localStorage.setItem('ed_notesSur', newNotesSur);
-        localStorage.setItem('ed_showProfName', newShowProf);
-        
-        notesSur = newNotesSur;
-        showProfName = newShowProf;
-        
-        if (currentTab === 'moyennes') {
-          renderMoyennes();
-        } else if (currentTab === 'carnet') {
-          renderCarnet();
+      var keysToRemove = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (key && key.startsWith('ed_')) {
+          keysToRemove.push(key);
         }
       }
-      
-      notesSurInput.addEventListener('change', applySettings);
-      showProfToggle.addEventListener('change', applySettings);
+      for (var i = 0; i < keysToRemove.length; i++) {
+        localStorage.removeItem(keysToRemove[i]);
+      }
+      sessionStorage.clear();
+      location.reload();
     }
+  });
+  
+  document.addEventListener('mouseup', function(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    document.body.style.userSelect = '';
+    
+    var currentLeft = parseInt(slideHandle.style.left);
+    if (currentLeft < trackWidth - handleWidth - 5) {
+      slideHandle.style.transition = 'left 0.3s ease';
+      slideHandle.style.left = '0px';
+      setTimeout(function() {
+        slideHandle.style.transition = 'left 0.1s ease';
+      }, 300);
+    }
+  });
+  slideHandle.addEventListener('touchstart', function(e) {
+    isDragging = true;
+    startX = e.touches[0].clientX;
+    trackWidth = slideTrack.offsetWidth;
+  });
+  
+  document.addEventListener('touchmove', function(e) {
+    if (!isDragging) return;
+    var delta = e.touches[0].clientX - startX;
+    var newLeft = Math.max(0, Math.min(trackWidth - handleWidth, delta));
+    slideHandle.style.left = newLeft + 'px';
+    
+    if (newLeft >= trackWidth - handleWidth - 5) {
+      isDragging = false;
+      
+      var keysToRemove = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var key = localStorage.key(i);
+        if (key && key.startsWith('ed_')) {
+          keysToRemove.push(key);
+        }
+      }
+      for (var i = 0; i < keysToRemove.length; i++) {
+        localStorage.removeItem(keysToRemove[i]);
+      }
+      sessionStorage.clear();
+      location.reload();
+    }
+  });
+  
+  document.addEventListener('touchend', function(e) {
+    if (!isDragging) return;
+    isDragging = false;
+    
+    var currentLeft = parseInt(slideHandle.style.left);
+    if (currentLeft < trackWidth - handleWidth - 5) {
+      slideHandle.style.transition = 'left 0.3s ease';
+      slideHandle.style.left = '0px';
+      setTimeout(function() {
+        slideHandle.style.transition = 'left 0.1s ease';
+      }, 300);
+    }
+  });
+  document.getElementById('infoBtn').addEventListener('click', function() {
+    var modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000001;display:flex;align-items:center;justify-content:center;';
+    
+    var content = document.createElement('div');
+    content.style.cssText = 'background:#1C1C2E;border-radius:20px;padding:30px;max-width:400px;width:90%;text-align:center;';
+    
+    content.innerHTML = `
+      <div style="font-size:40px;margin-bottom:16px;">infos</div>
+      <h2 style="color:#5E5EFF;margin-bottom:12px;">EcoleDirecte -</h2>
+      <p style="color:#E0E0E0;font-size:14px;line-height:1.6;margin-bottom:20px;">
+        V2.2.0<br>
+        cette version contient des elements en beta. ici les themes. ils sont en developpement et certaint objets peuvent ne pas etre affectés par le theme.<br>
+supprimer tout efface le localstorage d'ecoledirecte - (comme si c'est la 1ere fois)
+<br>
+        <a href="https://github.com/NotANumber-dev/ecoledirecte-" target="_blank" style="color:#5E5EFF;text-decoration:none;">GitHub</a>
+      </p>
+      <button id="closeInfoBtn" style="background:#5E5EFF;border:none;padding:12px 24px;border-radius:12px;color:white;font-size:15px;font-weight:600;cursor:pointer;">fermer</button>
+    `;
+    
+    modal.appendChild(content);
+    document.body.appendChild(modal);
+    
+    modal.onclick = function(e) {
+      if (e.target === modal) modal.remove();
+    };
+    
+    document.getElementById('closeInfoBtn').addEventListener('click', function() {
+      modal.remove();
+    });
+  });
+}
+
+//themes inspirés de @brandlet_official sur tiktok
+
+function applyTheme(themeName) {
+  var themes = {
+  "ED-classic": { bg: "#0B0B1A", card: "#1C1C2E", accent: "#5E5EFF", text: "#FFFFFF", textSecondary: "#8E8E93", gradient: "linear-gradient(135deg, #0B0B1A 0%, #1C1C2E 100%)" },
+  "Solar Flare": { bg: "#1A0A00", card: "#2D1500", accent: "#FFAA00", text: "#FFE0B3", textSecondary: "#B3804D", gradient: "linear-gradient(180deg, #FFAA00 0%, #E803A1 100%)" },
+  "Neon Tide": { bg: "#0A001A", card: "#15002D", accent: "#00FAA3", text: "#B3FFE0", textSecondary: "#4D8A70", gradient: "linear-gradient(180deg, #00FAA3 0%, #3B00FF 100%)" },
+  "Dusk": { bg: "#1A0014", card: "#2D0024", accent: "#FF5CBA", text: "#FFB3D9", textSecondary: "#8A4D70", gradient: "linear-gradient(180deg, #FF5CBA 0%, #2B00FF 100%)" },
+  "Arctic": { bg: "#0A1628", card: "#142D50", accent: "#E8F5FF", text: "#FFFFFF", textSecondary: "#8A9AB3", gradient: "linear-gradient(180deg, #E8F5FF 0%, #0050D8 100%)" },
+  "Glacier": { bg: "#000A14", card: "#001428", accent: "#A8E6FF", text: "#E0F7FF", textSecondary: "#4D6A80", gradient: "linear-gradient(180deg, #A8E6FF 0%, #001020 100%)" },
+  "Emerald": { bg: "#000A02", card: "#001A08", accent: "#00C85A", text: "#B3FFCC", textSecondary: "#4D8A5A", gradient: "linear-gradient(180deg, #00C85A 0%, #001A08 100%)" },
+  "Blaze": { bg: "#1A0000", card: "#2D0000", accent: "#FF2D2D", text: "#FFB3B3", textSecondary: "#8A4D4D", gradient: "linear-gradient(180deg, #1A0000 0%, #FF2D2D 100%)" },
+  "Solar": { bg: "#1A1200", card: "#2D1E00", accent: "#FFC500", text: "#FFE8B3", textSecondary: "#8A7A4D", gradient: "linear-gradient(180deg, #FFC500 0%, #1A1200 100%)" },
+  "ED-light": { bg: "#FFFFFF", card: "#F0F0F0", accent: "#5E5EFF", text: "#000000", textSecondary: "#666666", gradient: "linear-gradient(180deg, #FFFFFF 0%, #E8E8FF 100%)" },
+  "ED-OLED": { bg: "#000000", card: "#0A0A0A", accent: "#FFFFFF", text: "#FFFFFF", textSecondary: "#666666", gradient: "linear-gradient(180deg, #000000 0%, #0A0A0A 100%)" },
+  "custom1": { bg: "#F2E6EE", card: "#E8D5E0", accent: "#977DDF", text: "#2D1B36", textSecondary: "#6B5B7A", gradient: "linear-gradient(180deg, #F2E6EE 0%, #977DDF 100%)" },
+  "custom2": { bg: "#2C3E50", card: "#34495E", accent: "#4CA1AF", text: "#FFFFFF", textSecondary: "#A8C8D0", gradient: "linear-gradient(180deg, #2C3E50 0%, #4CA1AF 100%)" },
+  "feu": { bg: "#100C08", card: "#1A0E0A", accent: "#95122C", text: "#FFD4C4", textSecondary: "#A87060", gradient: "linear-gradient(180deg, #100C08 0%, #95122C 100%)" },
+  "world": { bg: "#FFCCF2", card: "#FFDDF5", accent: "#0033FF", text: "#1A0033", textSecondary: "#6688CC", gradient: "linear-gradient(180deg, #FFCCF2 0%, #0033FF 100%)" }
+};
+  
+  var theme = themes[themeName] || themes["ED-classic"];
+  var widget = document.getElementById('ed-widget');
+  if (!widget) return;
+  var existingStyle = document.getElementById('ed-theme-styles');
+  if (existingStyle) existingStyle.remove();
+  widget.style.background = theme.gradient;
+  var style = document.createElement('style');
+  style.id = 'ed-theme-styles';
+  
+  style.textContent = 
+    '#ed-widget { background: ' + theme.gradient + ' !important; }\n' +
+    '.stat-card, .subject-card, .annual-card, .home-card, .task-card, .carnet-card, .espace-card, .message-item, .viescolaire-section, .settings-container > div, .task-block, .date-pill, .hero-card, .filter-btn, .folder-btn { background: ' + theme.card + ' !important; border: 1px solid ' + theme.accent + '33 !important; }\n' +
+    '#carnetSearch, #searchInput { background: ' + theme.card + ' !important; color: ' + theme.text + ' !important; border: 1px solid ' + theme.accent + '33 !important; }\n' +
+    '.tab-bar, .trimester-selector { background: ' + theme.card + ' !important; border: 1px solid ' + theme.accent + '33 !important; }\n' +
+    '.tab-btn.active, .trimester-option.active { background: ' + theme.accent + ' !important; color: ' + theme.bg + ' !important; }\n' +
+    '.stat-value, .subject-average, .annual-value, .hero-stats strong, .eyebrow, .card-title, .task-badge, .attachment-btn, .mark-homework-btn, .filter-btn[data-filter="signed"], .folder-btn[data-folder="received"], .espace-card h3, .viescolaire-section h3 { color: ' + theme.accent + ' !important; }\n' +
+    '.subject-name, h1, h2, h3, strong, .task-content, .hero-stats strong, .home-subject span, .task-meta strong, .carnet-card strong, .message-item strong, .espace-card h3, .viescolaire-section h3, .settings-container label, .settings-container strong { color: ' + theme.text + ' !important; }\n' +
+    '.stat-label, .stat-sub, .subject-stats, .task-meta span, .task-badge, .date-pill span:last-child, .carnet-card span, .message-item div:last-child, .espace-card p, .viescolaire-section div, .annual-note-count, .hero-stats span, .home-subject span:last-child, .empty-state p { color: ' + theme.textSecondary + ' !important; }\n' +
+ //version oled
+    '.tab-btn, .trimester-option { color: ' + theme.text + ' !important; }\n' +
+    '.tab-btn.active, .trimester-option.active { color: ' + theme.bg + ' !important; }';
+  
+  document.head.appendChild(style);
+  localStorage.setItem('ed_theme', themeName);
+}
 
     function renderEspaceTravail() {
       var contentDiv = document.getElementById('ed-content');
@@ -2568,6 +2785,8 @@ function renderWeekView(courses, weekStart) {
         <div id="ed-content"></div>
       </div>
     `;
+        var savedTheme = localStorage.getItem('ed_theme') || 'ED-classic';
+applyTheme(savedTheme);
 
     document.body.appendChild(widget);
 
