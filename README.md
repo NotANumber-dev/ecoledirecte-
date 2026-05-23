@@ -42,10 +42,11 @@ Debug/test panel: https://www.icloud.com/shortcuts/b51d6ab0ad4048588a5ddc57356e9
 
 ## Sécurité/Confidentialité
 
-- Votre token d'authentification ne quitte JAMAIS votre navigateur
-- Aucune donnée n'est envoyée à un serveur externe
+- Votre token d'authentification ne quitte JAMAIS votre navigateur (sauf pour l'api car ya besoin bien sur)
+- Aucune donnée n'est envoyée à un serveur tiers
 - Tous les appels API vont directement à api.ecoledirecte.com
 - Vos informations d'identification ne sont stockées que dans sessionStorage (non persistent)
+- vos infos ecoledirecte - son stockées dans localstorage(persistant). pas d'infos personelles et peut etre supprimé dans reglages
 - Cette superposition fonctionne 100 % localement dans votre navigateur
 
 Toujours pas convaincu ? Regarde le code (main.js) et/ou les requêtes effectuées
