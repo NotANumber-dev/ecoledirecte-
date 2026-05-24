@@ -2105,7 +2105,7 @@ function renderSettings() {
   html += '</div>';
   
   html += '<div style="margin-top:20px;">';
-  html += '<label style="color:white;display:block;margin-bottom:8px;">Thème</label>';
+  html += '<label style="color:white;display:block;margin-bottom:8px;">Thème [BETA]</label>';
   html += '<select id="themeSelect" style="width:100%;padding:12px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:12px;color:white;font-size:16px;">';
   
   var themeNames = ["ED-classic", "Solar Flare", "Neon Tide", "Dusk", "Arctic", "Glacier", "Emerald", "Blaze", "Solar", "ED-light", "ED-OLED", "custom1", "custom2", "feu", "world"];
