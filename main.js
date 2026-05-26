@@ -234,6 +234,9 @@
 
     document.body.appendChild(widget);
 
+    var savedTheme = localStorage.getItem('ed_theme') || 'ED-classic';
+    var isLightTheme = savedTheme === 'ED-light';
+
     setTimeout(function() {
 
     function chooseDefaultTrimester() {
@@ -2089,23 +2092,43 @@ function renderSettings() {
   var savedNotesSur = localStorage.getItem('ed_notesSur') || '20';
   var savedShowProfName = localStorage.getItem('ed_showProfName') === 'true';
   var savedTheme = localStorage.getItem('ed_theme') || 'ED-classic';
-  
+
+  var paletteIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLXBhbGV0dGUtaWNvbiBsdWNpZGUtcGFsZXR0ZSI+PHBhdGggZD0iTTEyIDIyYTEgMSAwIDAgMSAwLTIwIDEwIDkgMCAwIDEgMTAgOSA1IDUgMCAwIDEtNSA1aC0yLjI1YTEuNzUgMS43NSAwIDAgMC0xLjQgMi44bC4zLjRhMS43NSAxLjc1IDAgMCAxLTEuNCAyLjh6Ii8+PGNpcmNsZSBjeD0iMTMuNSIgY3k9IjYuNSIgcj0iLjUiIGZpbGw9ImN1cnJlbnRDb2xvciIvPjxjaXJjbGUgY3g9IjE3LjUiIGN5PSIxMC41IiByPSIuNSIgZmlsbD0iY3VycmVudENvbG9yIi8+PGNpcmNsZSBjeD0iNi41IiBjeT0iMTIuNSIgcj0iLjUiIGZpbGw9ImN1cnJlbnRDb2xvciIvPjxjaXJjbGUgY3g9IjguNSIgY3k9IjcuNSIgcj0iLjUiIGZpbGw9ImN1cnJlbnRDb2xvciIvPjwvc3ZnPg==';
+  var settings2Icon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLXNldHRpbmdzMi1pY29uIGx1Y2lkZS1zZXR0aW5ncy0yIj48cGF0aCBkPSJNMTQgMTdINSIvPjxwYXRoIGQ9Ik0xOSA3aC05Ii8+PGNpcmNsZSBjeD0iMTciIGN5PSIxNyIgcj0iMyIvPjxjaXJjbGUgY3g9IjciIGN5PSI3IiByPSIzIi8+PC9zdmc+';
+  var eyeOffIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWV5ZS1vZmYtaWNvbiBsdWNpZGUtZXllLW9mZiI+PHBhdGggZD0iTTEwLjczMyA1LjA3NmExMC43NDQgMTAuNzQ0IDAgMCAxIDExLjIwNSA2LjU3NSAxIDEgMCAwIDEgMCAuNjk2IDEwLjc0NyAxMC43NDcgMCAwIDEtMS40NDQgMi40OSIvPjxwYXRoIGQ9Ik0xNC4wODQgMTQuMTU4YTMgMyAwIDAgMS00LjI0Mi00LjI0MiIvPjxwYXRoIGQ9Ik0xNy40NzkgMTcuNDk5YTEwLjc1IDEwLjc1IDAgMCAxLTE1LjQxNy01LjE1MSAxIDEgMCAwIDEgMC0uNjk2IDEwLjc1IDEwLjc1IDAgMCAxIDQuNDQ2LTUuMTQzIi8+PHBhdGggZD0ibTIgMiAyMCAyMCIvPjwvc3ZnPg==';
+  var settingsIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLXNldHRpbmdzLWljb24gbHVjaWRlLXNldHRpbmdzIj48cGF0aCBkPSJNOS42NzEgNC4xMzZhMi4zNCAyLjM0IDAgMCAxIDQuNjU5IDAgMi4zNCAyLjM0IDAgMCAwIDMuMzE5IDEuOTE1IDIuMzQgMi4zNCAwIDAgMSAyLjMzIDQuMDMzIDIuMzQgMi4zNCAwIDAgMCAwIDMuODMxIDIuMzQgMi4zNCAwIDAgMS0yLjMzIDQuMDMzIDIuMzQgMi4zNCAwIDAgMC0zLjMxOSAxLjkxNSAyLjM0IDIuMzQgMCAwIDEtNC42NTkgMCAyLjM0IDIuMzQgMCAwIDAtMy4zMi0xLjkxNSAyLjM0IDIuMzQgMCAwIDEtMi4zMy00LjAzMyAyLjM0IDIuMzQgMCAwIDAgMC0zLjgzMUEyLjM0IDIuMzQgMCAwIDEgNi4zNSA2LjA1MWEyLjM0IDIuMzQgMCAwIDAgMy4zMTktMS45MTUiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIzIi8+PC9zdmc+';
+  var trashIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLXRyYXNoMi1pY29uIGx1Y2lkZS10cmFzaC0yIj48cGF0aCBkPSJNMTAgMTF2NiIvPjxwYXRoIGQ9Ik0xNCAxMXY2Ii8+PHBhdGggZD0iTTE5IDZ2MTRhMiAyIDAgMCAxLTIgMkg3YTIgMiAwIDAgMS0yLTJWNiIvPjxwYXRoIGQ9Ik0zIDZoMTgiLz48cGF0aCBkPSJNOCA2VjRhMiAyIDAgMCAxIDItMmg0YTIgMiAwIDAgMSAyIDJ2MiIvPjwvc3ZnPg==';
+  var arrowIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWFycm93LWJpZy1yaWdodC1kYXNoLWljb24gbHVjaWRlLWFycm93LWJpZy1yaWdodC1kYXNoIj48cGF0aCBkPSJNMTEgOWExIDEgMCAwIDAgMS0xVjQuNzA3YS43MDcuNzA3IDAgMCAxIDEuMjA3LS41bDYuOTQgNi45NGExLjIwNyAxLjIwNyAwIDAgMSAwIDEuNzA3bC02Ljk0IDYuOTRhLjcwNy43MDcgMCAwIDEtMS4yMDctLjVWMTZhMSAxIDAgMCAwLTEtMUg5YTEgMSAwIDAgMS0xLTF2LTRhMSAxIDAgMCAxIDEtMXoiLz48cGF0aCBkPSJNNCA5djYiLz48L3N2Zz4=';
+  var infoIcon = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9ImN1cnJlbnRDb2xvciIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGNsYXNzPSJsdWNpZGUgbHVjaWRlLWluZm8taWNvbiBsdWNpZGUtLWluZm8iPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIi8+PHBhdGggZD0iTTEyIDE2di00Ii8+PHBhdGggZD0iTTEyIDhoLjAxIi8+PC9zdmc+';
+
   var html = '<div class="settings-container">';
   html += '<div style="background:#1C1C2E;border-radius:20px;padding:24px;margin-bottom:20px;">';
-  html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">Paramètres</h2>';
+  html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">';
+  html += '<img src="' + settingsIcon + '" width="24" height="24" style="color:#5E5EFF;">';
+  html += '<h2 style="color:#5E5EFF;margin:0;">Paramètres</h2>';
+  html += '</div>';
   
   html += '<div style="margin-bottom:20px;">';
-  html += '<label style="color:white;display:block;margin-bottom:8px;">Notes sur</label>';
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+  html += '<img src="' + settings2Icon + '" width="20" height="20" style="color:#8E8E93;">';
+  html += '<label style="color:white;display:block;">Notes sur</label>';
+  html += '</div>';
   html += '<input type="number" id="notesSurInput" value="' + savedNotesSur + '" step="1" min="0" max="20" style="width:100%;padding:12px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:12px;color:white;font-size:16px;">';
   html += '</div>';
   
   html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2C2C44;">';
-  html += '<div><strong style="color:white;">Masquer le(s) nom(s) du prof</strong></div>';
+  html += '<div style="display:flex;align-items:center;gap:8px;">';
+  html += '<img src="' + eyeOffIcon + '" width="20" height="20" style="color:#8E8E93;">';
+  html += '<strong style="color:white;">Masquer le(s) nom(s) du prof</strong>';
+  html += '</div>';
   html += '<input type="checkbox" id="showProfToggle" ' + (savedShowProfName ? 'checked' : '') + ' style="width:20px;height:20px;cursor:pointer;">';
   html += '</div>';
   
   html += '<div style="margin-top:20px;">';
-  html += '<label style="color:white;display:block;margin-bottom:8px;">Thème [BETA]</label>';
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+  html += '<img src="' + paletteIcon + '" width="20" height="20" style="color:#8E8E93;">';
+  html += '<label style="color:white;display:block;">Thème [BETA]</label>';
+  html += '</div>';
   html += '<select id="themeSelect" style="width:100%;padding:12px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:12px;color:white;font-size:16px;">';
   
   var themeNames = ["ED-classic", "Solar Flare", "Neon Tide", "Dusk", "Arctic", "Glacier", "Emerald", "Blaze", "Solar", "ED-light", "ED-OLED", "custom1", "custom2", "feu", "world"];
@@ -2117,26 +2140,35 @@ function renderSettings() {
   
   html += '</select>';
   html += '</div>';
+  
   html += '<div style="margin-top:30px;padding-top:20px;border-top:1px solid #2C2C44;">';
   html += '<div style="display:flex;flex-direction:column;gap:12px;">';
-  html += '<button id="eraseBtn" style="width:100%;padding:14px;background:#FF2D2D;border:none;border-radius:12px;color:white;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.3s ease;">tout effacer</button>';
+  html += '<button id="eraseBtn" style="width:100%;padding:14px;background:#FF2D2D;border:none;border-radius:12px;color:white;font-size:16px;font-weight:600;cursor:pointer;">';
+  html += '<span style="display:flex;align-items:center;gap:8px;justify-content:center;">';
+  html += '<img src="' + trashIcon + '" width="20" height="20" style="display:inline-block;vertical-align:middle;">';
+  html += 'Tout effacer</span></button>';
   html += '<div id="slideConfirm" style="display:none;background:#1C1C2E;border-radius:12px;padding:4px;position:relative;height:50px;overflow:hidden;">';
   html += '<div id="slideTrack" style="width:100%;height:100%;background:#2C2C44;border-radius:10px;position:relative;">';
-  html += '<div id="slideHandle" style="width:50px;height:50px;background:#FF2D2D;border-radius:10px;position:absolute;left:0;top:0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;font-weight:600;transition:left 0.1s ease;z-index:2;">→</div>';
-  html += '<div id="slideText" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#8E8E93;font-size:14px;pointer-events:none;z-index:1;">glisse moi pour confirmer</div>';
+  html += '<div id="slideHandle" style="width:50px;height:50px;background:#FF2D2D;border-radius:10px;position:absolute;left:0;top:0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;transition:left 0.1s ease;z-index:2;">';
+  html += '<img src="' + arrowIcon + '" width="24" height="24" style="display:block;margin:auto;">';
+  html += '</div>';
+  html += '<div id="slideText" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#8E8E93;font-size:14px;pointer-events:none;z-index:1;">Glisse moi pour confirmer</div>';
   html += '</div>';
   html += '</div>';
   html += '</div>';
   html += '</div>';
+  
   html += '<div style="margin-top:20px;padding-top:20px;border-top:1px solid #2C2C44;">';
-  html += '<button id="infoBtn" style="width:100%;padding:14px;background:#2C2C44;border:none;border-radius:12px;color:#5E5EFF;font-size:16px;font-weight:600;cursor:pointer;">Info</button>';
+  html += '<button id="infoBtn" style="width:100%;padding:14px;background:#2C2C44;border:none;border-radius:12px;color:#5E5EFF;font-size:16px;font-weight:600;cursor:pointer;">';
+  html += '<span style="display:flex;align-items:center;gap:8px;justify-content:center;">';
+  html += '<img src="' + infoIcon + '" width="20" height="20" style="display:inline-block;vertical-align:middle;">';
+  html += 'Info</span></button>';
   html += '</div>';
   
   html += '</div>';
   html += '</div>';
   
   contentDiv.innerHTML = html;
-  
   var notesSurInput = document.getElementById('notesSurInput');
   var showProfToggle = document.getElementById('showProfToggle');
   var themeSelect = document.getElementById('themeSelect');
@@ -2144,7 +2176,7 @@ function renderSettings() {
   var slideConfirm = document.getElementById('slideConfirm');
   var slideHandle = document.getElementById('slideHandle');
   var slideTrack = document.getElementById('slideTrack');
-  
+  var infoBtn = document.getElementById('infoBtn');
   function applySettings() {
     var newNotesSur = notesSurInput.value;
     var newShowProf = showProfToggle.checked;
@@ -2171,21 +2203,27 @@ function renderSettings() {
   notesSurInput.addEventListener('change', applySettings);
   showProfToggle.addEventListener('change', applySettings);
   themeSelect.addEventListener('change', applySettings);
-  eraseBtn.addEventListener('click', function() {
-    slideConfirm.style.display = 'block';
-    slideHandle.style.left = '0px';
-  });
+  
+  if (eraseBtn) {
+    eraseBtn.addEventListener('click', function() {
+      slideConfirm.style.display = 'block';
+      slideHandle.style.left = '0px';
+    });
+  }
+  
   var isDragging = false;
   var startX = 0;
   var handleWidth = 50;
   var trackWidth = 0;
   
-  slideHandle.addEventListener('mousedown', function(e) {
-    isDragging = true;
-    startX = e.clientX;
-    trackWidth = slideTrack.offsetWidth;
-    document.body.style.userSelect = 'none';
-  });
+  if (slideHandle) {
+    slideHandle.addEventListener('mousedown', function(e) {
+      isDragging = true;
+      startX = e.clientX;
+      trackWidth = slideTrack.offsetWidth;
+      document.body.style.userSelect = 'none';
+    });
+  }
   
   document.addEventListener('mousemove', function(e) {
     if (!isDragging) return;
@@ -2226,11 +2264,14 @@ function renderSettings() {
       }, 300);
     }
   });
-  slideHandle.addEventListener('touchstart', function(e) {
-    isDragging = true;
-    startX = e.touches[0].clientX;
-    trackWidth = slideTrack.offsetWidth;
-  });
+  
+  if (slideHandle) {
+    slideHandle.addEventListener('touchstart', function(e) {
+      isDragging = true;
+      startX = e.touches[0].clientX;
+      trackWidth = slideTrack.offsetWidth;
+    });
+  }
   
   document.addEventListener('touchmove', function(e) {
     if (!isDragging) return;
@@ -2269,37 +2310,41 @@ function renderSettings() {
       }, 300);
     }
   });
-  document.getElementById('infoBtn').addEventListener('click', function() {
-    var modal = document.createElement('div');
-    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000001;display:flex;align-items:center;justify-content:center;';
-    
-    var content = document.createElement('div');
-    content.style.cssText = 'background:#1C1C2E;border-radius:20px;padding:30px;max-width:400px;width:90%;text-align:center;';
-    
-    content.innerHTML = `
-      <div style="font-size:40px;margin-bottom:16px;">infos</div>
-      <h2 style="color:#5E5EFF;margin-bottom:12px;">EcoleDirecte -</h2>
-      <p style="color:#E0E0E0;font-size:14px;line-height:1.6;margin-bottom:20px;">
-        V2.2.0<br>
-        cette version contient des elements en beta. ici les themes. ils sont en developpement et certaint objets peuvent ne pas etre affectés par le theme.<br>
-supprimer tout efface le localstorage d'ecoledirecte - (comme si c'est la 1ere fois)
-<br>
-        <a href="https://github.com/NotANumber-dev/ecoledirecte-" target="_blank" style="color:#5E5EFF;text-decoration:none;">GitHub</a>
-      </p>
-      <button id="closeInfoBtn" style="background:#5E5EFF;border:none;padding:12px 24px;border-radius:12px;color:white;font-size:15px;font-weight:600;cursor:pointer;">fermer</button>
-    `;
-    
-    modal.appendChild(content);
-    document.body.appendChild(modal);
-    
-    modal.onclick = function(e) {
-      if (e.target === modal) modal.remove();
-    };
-    
-    document.getElementById('closeInfoBtn').addEventListener('click', function() {
-      modal.remove();
+  
+  if (infoBtn) {
+    infoBtn.addEventListener('click', function() {
+      var modal = document.createElement('div');
+      modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000001;display:flex;align-items:center;justify-content:center;';
+      
+      var content = document.createElement('div');
+      content.style.cssText = 'background:#1C1C2E;border-radius:20px;padding:30px;max-width:400px;width:90%;text-align:center;';
+      
+      content.innerHTML = `
+        <div style="font-size:40px;margin-bottom:16px;">
+          <img src="${infoIcon}" width="40" height="40" style="display:inline-block;">
+        </div>
+        <h2 style="color:#5E5EFF;margin-bottom:12px;">EcoleDirecte -</h2>
+        <p style="color:#E0E0E0;font-size:14px;line-height:1.6;margin-bottom:20px;">
+          V26.5.1<br>
+          cette version contient des elements en beta. ici les themes. ils sont en developpement et certaint objets peuvent ne pas etre affectés par le theme.<br>
+          supprimer tout efface le localstorage d'ecoledirecte - (comme si c'est la 1ere fois)<br>
+          <a href="https://github.com/NotANumber-dev/ecoledirecte-" target="_blank" style="color:#5E5EFF;text-decoration:none;">GitHub</a>
+        </p>
+        <button id="closeInfoBtn" style="background:#5E5EFF;border:none;padding:12px 24px;border-radius:12px;color:white;font-size:15px;font-weight:600;cursor:pointer;">fermer</button>
+      `;
+      
+      modal.appendChild(content);
+      document.body.appendChild(modal);
+      
+      modal.onclick = function(e) {
+        if (e.target === modal) modal.remove();
+      };
+      
+      document.getElementById('closeInfoBtn').addEventListener('click', function() {
+        modal.remove();
+      });
     });
-  });
+  }
 }
 
 //themes inspirés de @brandlet_official sur tiktok
@@ -2343,9 +2388,30 @@ function applyTheme(themeName) {
     '.stat-label, .stat-sub, .subject-stats, .task-meta span, .task-badge, .date-pill span:last-child, .carnet-card span, .message-item div:last-child, .espace-card p, .viescolaire-section div, .annual-note-count, .hero-stats span, .home-subject span:last-child, .empty-state p { color: ' + theme.textSecondary + ' !important; }\n' +
  //version oled
     '.tab-btn, .trimester-option { color: ' + theme.text + ' !important; }\n' +
-    '.tab-btn.active, .trimester-option.active { color: ' + theme.bg + ' !important; }';
+    '.tab-btn.active, .trimester-option.active { color: ' + theme.bg + ' !important; }\n' +
+    '.settings-container img { filter: ' + (themeName === 'ED-light' ? 'none' : 'invert(1)') + ' !important; }';
   
   document.head.appendChild(style);
+  
+  var tabBar = widget.querySelector('.tab-bar');
+  if (tabBar) {
+    var wasActive = widget.querySelector('.tab-btn.active');
+    var activeTab = wasActive ? wasActive.getAttribute('data-tab') : 'home';
+    
+    tabBar.outerHTML = getTabBarHtml(themeName);
+    
+
+    var tabBtns = widget.querySelectorAll('.tab-btn');
+    for (var i = 0; i < tabBtns.length; i++) {
+      tabBtns[i].addEventListener('click', function(e) {
+        setTab(this.getAttribute('data-tab'));
+      });
+    }
+
+var newActive = widget.querySelector('.tab-btn[data-tab="' + activeTab + '"]');
+    if (newActive) newActive.classList.add('active');
+  }
+  
   localStorage.setItem('ed_theme', themeName);
 }
 
@@ -2708,6 +2774,83 @@ function applyTheme(themeName) {
       }
     }
 
+var homeIconLight = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1ob3VzZS1pY29uIGx1Y2lkZS1ob3VzZSI+PHBhdGggZD0iTTE1IDIxdi04YTEgMSAwIDAgMC0xLTFoLTRhMSAxIDAgMCAwLTEgMXY4Ii8+PHBhdGggZD0iTTMgMTBhMiAyIDAgMCAxIC43MDktMS41MjhsNy02YTIgMiAwIDAgMSAyLjU4MiAwbDcgNkEyIDIgMCAwIDEgMjEgMTB2OWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMnoiLz48L3N2Zz4=';
+var homeIconDark = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1ob3VzZS1pY29uIGx1Y2lkZS1ob3VzZSI+PHBhdGggZD0iTTE1IDIxdi04YTEgMSAwIDAgMC0xLTFoLTRhMSAxIDAgMCAwLTEgMXY4Ii8+PHBhdGggZD0iTTMgMTBhMiAyIDAgMCAxIC43MDktMS41MjhsNy02YTIgMiAwIDAgMSAyLjU4MiAwbDcgNkEyIDIgMCAwIDEgMjEgMTB2OWEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMnoiLz48L3N2Zz4=';
+
+var noteIconLight = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1saXN0LW9yZGVyZWQtaWNvbiBsdWNpZGUtbGlzdC1vcmRlcmVkIj48cGF0aCBkPSJNMTEgNWgxMCIvPjxwYXRoIGQ9Ik0xMSAxMmgxMCIvPjxwYXRoIGQ9Ik0xMSAxOWgxMCIvPjxwYXRoIGQ9Ik00IDRoMXY1Ii8+PHBhdGggZD0iTTQgOWgyIi8+PHBhdGggZD0iTTYuNSAyMEgzLjRjMC0xIDIuNi0xLjkyNSAyLjYtMy41YTEuNSAxLjUgMCAwIDAtMi42LTEuMDIiLz48L3N2Zz4=';
+var noteIconDark = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1saXN0LW9yZGVyZWQtaWNvbiBsdWNpZGUtbGlzdC1vcmRlcmVkIj48cGF0aCBkPSJNMTEgNWgxMCIvPjxwYXRoIGQ9Ik0xMSAxMmgxMCIvPjxwYXRoIGQ9Ik0xMSAxOWgxMCIvPjxwYXRoIGQ9Ik00IDRoMXY1Ii8+PHBhdGggZD0iTTQgOWgyIi8+PHBhdGggZD0iTTYuNSAyMEgzLjRjMC0xIDIuNi0xLjkyNSAyLjYtMy41YTEuNSAxLjUgMCAwIDAtMi42LTEuMDIiLz48L3N2Zz4=';
+
+var homeworkIconLight = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1ib29rLXRleHQtaWNvbiBsdWNpZGUtYm9vay10ZXh0Ij48cGF0aCBkPSJNNCAxOS41di0xNUEyLjUgMi41IDAgMCAxIDYuNSAySDE5YTEgMSAwIDAgMSAxIDF2MThhMSAxIDAgMCAxLTEgMUg2LjVhMSAxIDAgMCAxIDAtNUgyMCIvPjxwYXRoIGQ9Ik04IDExaDgiLz48cGF0aCBkPSJNOCA3aDYiLz48L3N2Zz4=';
+var homeworkIconDark = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1ib29rLXRleHQtaWNvbiBsdWNpZGUtYm9vay10ZXh0Ij48cGF0aCBkPSJNNCAxOS41di0xNUEyLjUgMi41IDAgMCAxIDYuNSAySDE5YTEgMSAwIDAgMSAxIDF2MThhMSAxIDAgMCAxLTEgMUg2LjVhMSAxIDAgMCAxIDAtNUgyMCIvPjxwYXRoIGQ9Ik04IDExaDgiLz48cGF0aCBkPSJNOCA3aDYiLz48L3N2Zz4=';
+
+var emploiIconLight = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1jYWxlbmRhci1jbG9jay1pY29uIGx1Y2lkZS1jYWxlbmRhci1jbG9jayI+PHBhdGggZD0iTTE2IDE0djIuMmwxLjYgMSIvPjxwYXRoIGQ9Ik0xNiAydjQiLz48cGF0aCBkPSJNMjEgNy41VjZhMiAyIDAgMCAwLTItMkg1YTIgMiAwIDAgMC0yIDJ2MTRhMiAyIDAgMCAwIDIgMmgzLjUiLz48cGF0aCBkPSJNMyAxMGg1Ii8+PHBhdGggZD0iTTggMnY0Ii8+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iNiIvPjwvc3ZnPg==';
+var emploiIconDark = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1jYWxlbmRhci1jbG9jay1pY29uIGx1Y2lkZS1jYWxlbmRhci1jbG9jayI+PHBhdGggZD0iTTE2IDE0djIuMmwxLjYgMSIvPjxwYXRoIGQ9Ik0xNiAydjQiLz48cGF0aCBkPSJNMjEgNy41VjZhMiAyIDAgMCAwLTItMkg1YTIgMiAwIDAgMC0yIDJ2MTRhMiAyIDAgMCAwIDIgMmgzLjUiLz48cGF0aCBkPSJNMyAxMGg1Ii8+PHBhdGggZD0iTTggMnY0Ii8+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iNiIvPjwvc3ZnPg==';
+
+var espaceIconLight = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1zZXJ2ZXItaWNvbiBsdWNpZGUtc2VydmVyIj48cmVjdCB3aWR0aD0iMjAiIGhlaWdodD0iOCIgeD0iMiIgeT0iMiIgcng9IjIiIHJ5PSIyIi8+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjgiIHg9IjIiIHk9IjE0IiByeD0iMiIgcnk9IjIiLz48bGluZSB4MT0iNiIgeDI9IjYuMDEiIHkxPSI2IiB5Mj0iNiIvPjxsaW5lIHgxPSI2IiB4Mj0iNi4wMSIgeTE9IjE4IiB5Mj0iMTgiLz48L3N2Zz4=';
+var espaceIconDark = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1zZXJ2ZXItaWNvbiBsdWNpZGUtc2VydmVyIj48cmVjdCB3aWR0aD0iMjAiIGhlaWdodD0iOCIgeD0iMiIgeT0iMiIgcng9IjIiIHJ5PSIyIi8+PHJlY3Qgd2lkdGg9IjIwIiBoZWlnaHQ9IjgiIHg9IjIiIHk9IjE0IiByeD0iMiIgcnk9IjIiLz48bGluZSB4MT0iNiIgeDI9IjYuMDEiIHkxPSI2IiB5Mj0iNiIvPjxsaW5lIHgxPSI2IiB4Mj0iNi4wMSIgeTE9IjE4IiB5Mj0iMTgiLz48L3N2Zz4=';
+
+var carnetIconLight = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1ib29rLXVzZXItaWNvbiBsdWNpZGUtYm9vay11c2VyIj48cGF0aCBkPSJNMTUgMTNhMyAzIDAgMSAwLTYgMCIvPjxwYXRoIGQ9Ik00IDE5LjV2LTE1QTIuNSAyLjUgMCAwIDEgNi41IDJIMTlhMSAxIDAgMCAxIDEgMXYxOGExIDEgMCAwIDEtMSAxSDYuNWExIDEgMCAwIDEgMC01SDIwIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSIyIi8+PC9zdmc+';
+var carnetIconDark = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1ib29rLXVzZXItaWNvbiBsdWNpZGUtYm9vay11c2VyIj48cGF0aCBkPSJNMTUgMTNhMyAzIDAgMSAwLTYgMCIvPjxwYXRoIGQ9Ik00IDE5LjV2LTE1QTIuNSAyLjUgMCAwIDEgNi41IDJIMTlhMSAxIDAgMCAxIDEgMXYxOGExIDEgMCAwIDEtMSAxSDYuNWExIDEgMCAwIDEgMC01SDIwIi8+PGNpcmNsZSBjeD0iMTIiIGN5PSI4IiByPSIyIi8+PC9zdmc+';
+
+var vieIconLight = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1ub3RlYm9vay10YWJzLWljb24gbHVjaWRlLW5vdGVib29rLXRhYnMiPjxwYXRoIGQ9Ik0yIDZoNCIvPjxwYXRoIGQ9Ik0yIDEwaDQiLz48cGF0aCBkPSJNMiAxNGg0Ii8+PHBhdGggZD0iTTIgMThoNCIvPjxyZWN0IHdpZHRoPSIxNiIgaGVpZ2h0PSIyMCIgeD0iNCIgeT0iMiIgcng9IjIiLz48cGF0aCBkPSJNMTUgMnYyMCIvPjxwYXRoIGQ9Ik0xNSA3aDUiLz48cGF0aCBkPSJNMTUgMTJoNSIvPjxwYXRoIGQ9Ik0xNSAxN2g1Ii8+PC9zdmc+';
+var vieIconDark = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1ub3RlYm9vay10YWJzLWljb24gbHVjaWRlLW5vdGVib29rLXRhYnMiPjxwYXRoIGQ9Ik0yIDZoNCIvPjxwYXRoIGQ9Ik0yIDEwaDQiLz48cGF0aCBkPSJNMiAxNGg0Ii8+PHBhdGggZD0iTTIgMThoNCIvPjxyZWN0IHdpZHRoPSIxNiIgaGVpZ2h0PSIyMCIgeD0iNCIgeT0iMiIgcng9IjIiLz48cGF0aCBkPSJNMTUgMnYyMCIvPjxwYXRoIGQ9Ik0xNSA3aDUiLz48cGF0aCBkPSJNMTUgMTJoNSIvPjxwYXRoIGQ9Ik0xNSAxN2g1Ii8+PC9zdmc+';
+
+var messageIconLight = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1tYWlsLWljb24gbHVjaWRlLW1haWwiPjxwYXRoIGQ9Im0yMiA3LTguOTkxIDUuNzI3YTIgMiAwIDAgMS0yLjAwOSAwTDIgNyIvPjxyZWN0IHg9IjIiIHk9IjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjIiLz48L3N2Zz4=';
+var messageIconDark = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1tYWlsLWljb24gbHVjaWRlLW1haWwiPjxwYXRoIGQ9Im0yMiA3LTguOTkxIDUuNzI3YTIgMiAwIDAgMS0yLjAwOSAwTDIgNyIvPjxyZWN0IHg9IjIiIHk9IjQiIHdpZHRoPSIyMCIgaGVpZ2h0PSIxNiIgcng9IjIiLz48L3N2Zz4=';
+
+var settingsIconLight = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1zZXR0aW5ncy1pY29uIGx1Y2lkZS1zZXR0aW5ncyI+PHBhdGggZD0iTTkuNjcxIDQuMTM2YTIuMzQgMi4zNCAwIDAgMSA0LjY1OSAwIDIuMzQgMi4zNCAwIDAgMCAzLjMxOSAxLjkxNSAyLjM0IDIuMzQgMCAwIDEgMi4zMyA0LjAzMyAyLjM0IDIuMzQgMCAwIDAgMCAzLjgzMSAyLjM0IDIuMzQgMCAwIDEtMi4zMyA0LjAzMyAyLjM0IDIuMzQgMCAwIDAtMy4zMTkgMS45MTUgMi4zNCAyLjM0IDAgMCAxLTQuNjU5IDAgMi4zNCAyLjM0IDAgMCAwLTMuMzItMS45MTUgMi4zNCAyLjM0IDAgMCAxLTIuMzMtNC4wMzMgMi4zNCAyLjM0IDAgMCAwIDAtMy44MzFBMi4zNCAyLjM0IDAgMCAxIDYuMzUgNi4wNTFhMi4zNCAyLjM0IDAgMCAwIDMuMzE5LTEuOTE1Ii8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMyIvPjwvc3ZnPg==';
+var settingsIconDark = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiMwMDAwMDAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1zZXR0aW5ncy1pY29uIGx1Y2lkZS1zZXR0aW5ncyI+PHBhdGggZD0iTTkuNjcxIDQuMTM2YTIuMzQgMi4zNCAwIDAgMSA0LjY1OSAwIDIuMzQgMi4zNCAwIDAgMCAzLjMxOSAxLjkxNSAyLjM0IDIuMzQgMCAwIDEgMi4zMyA0LjAzMyAyLjM0IDIuMzQgMCAwIDAgMCAzLjgzMSAyLjM0IDIuMzQgMCAwIDEtMi4zMyA0LjAzMyAyLjM0IDIuMzQgMCAwIDAtMy4zMTkgMS45MTUgMi4zNCAyLjM0IDAgMCAxLTQuNjU5IDAgMi4zNCAyLjM0IDAgMCAwLTMuMzItMS45MTUgMi4zNCAyLjM0IDAgMCAxLTIuMzMtNC4wMzMgMi4zNCAyLjM0IDAgMCAwIDAtMy44MzFBMi4zNCAyLjM0IDAgMCAxIDYuMzUgNi4wNTFhMi4zNCAyLjM0IDAgMCAwIDMuMzE5LTEuOTE1Ii8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMyIvPjwvc3ZnPg==';
+
+function getTabBarHtml(themeName) {
+  var savedTheme = themeName || localStorage.getItem('ed_theme') || 'ED-classic';
+  var isLightTheme = savedTheme === 'ED-light';
+  
+  return `
+    <div class="tab-bar">
+      <button class="tab-btn" data-tab="home">
+        <img src="${isLightTheme ? homeIconDark : homeIconLight}" width="18" height="18" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+        Accueil
+      </button>
+      <button class="tab-btn" data-tab="moyennes">
+        <img src="${isLightTheme ? noteIconDark : noteIconLight}" width="18" height="18" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+        Notes
+      </button>
+      <button class="tab-btn" data-tab="devoirs">
+        <img src="${isLightTheme ? homeworkIconDark : homeworkIconLight}" width="18" height="18" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+        Devoirs
+      </button>
+      <button class="tab-btn" data-tab="emploidutemps">
+        <img src="${isLightTheme ? emploiIconDark : emploiIconLight}" width="18" height="18" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+        Emploi du temps
+      </button>
+      <button class="tab-btn" data-tab="espacetravail">
+        <img src="${isLightTheme ? espaceIconDark : espaceIconLight}" width="18" height="18" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+        Espace travail
+      </button>
+      <button class="tab-btn" data-tab="carnet">
+        <img src="${isLightTheme ? carnetIconDark : carnetIconLight}" width="18" height="18" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+        Carnet
+      </button>
+      <button class="tab-btn" data-tab="viescolaire">
+        <img src="${isLightTheme ? vieIconDark : vieIconLight}" width="18" height="18" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+        Vie scolaire
+      </button>
+      <button class="tab-btn" data-tab="messagerie">
+        <img src="${isLightTheme ? messageIconDark : messageIconLight}" width="18" height="18" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+        Messages
+      </button>
+      <button class="tab-btn" data-tab="settings">
+        <img src="${isLightTheme ? settingsIconDark : settingsIconLight}" width="18" height="18" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+        Paramètres
+      </button>
+    </div>
+  `;
+}
+
+
+
+
+
     widget.innerHTML = `
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -2770,25 +2913,15 @@ function applyTheme(themeName) {
         .carnet-card:hover { transform: scale(1.01); }
         @media (max-width: 768px) { .m-container { padding: 16px; } .subjects-grid { grid-template-columns: 1fr; } .stat-value { font-size: 36px; } .annual-value { font-size: 44px; } .tab-bar { gap: 6px; } .tab-btn { padding: 10px; font-size: 12px; } }
       </style>
-      <div class="m-container">
-        <div class="tab-bar">
-          <button class="tab-btn" data-tab="home">Accueil</button>
-          <button class="tab-btn" data-tab="moyennes">Notes</button>
-          <button class="tab-btn" data-tab="devoirs">Devoirs</button>
-          <button class="tab-btn" data-tab="emploidutemps">Emploi du temps</button>
-          <button class="tab-btn" data-tab="espacetravail">Espace travail</button>
-          <button class="tab-btn" data-tab="carnet">Carnet</button>
-          <button class="tab-btn" data-tab="viescolaire">Vie scolaire</button>
-          <button class="tab-btn" data-tab="messagerie">Messages</button>
-          <button class="tab-btn" data-tab="settings">Paramètres</button>
-        </div>
-        <div id="ed-content"></div>
-      </div>
-    `;
+    <div class="m-container">
+     ${getTabBarHtml()}
+    <div id="ed-content"></div>
+  </div>
+`;
+
+document.body.appendChild(widget);
         var savedTheme = localStorage.getItem('ed_theme') || 'ED-classic';
 applyTheme(savedTheme);
-
-    document.body.appendChild(widget);
 
     window.goBack = function() {
       if (previousView === 'devoirs') {
@@ -2804,8 +2937,9 @@ applyTheme(savedTheme);
     var tabBtns = document.querySelectorAll('#ed-widget .tab-btn');
     function setTab(tab) {
       currentTab = tab;
-      for (var j = 0; j < tabBtns.length; j++) {
-        tabBtns[j].classList.remove('active');
+      var currentTabBtns = document.querySelectorAll('#ed-widget .tab-btn');
+      for (var j = 0; j < currentTabBtns.length; j++) {
+        currentTabBtns[j].classList.remove('active');
       }
       var button = document.querySelector('#ed-widget .tab-btn[data-tab="' + tab + '"]');
       if (button) button.classList.add('active');
