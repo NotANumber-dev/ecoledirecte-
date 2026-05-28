@@ -86,7 +86,11 @@ POST https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte/${dateKey}.awp?v
 POST https://api.ecoledirecte.com/v3/eleves/${id}/messages/${messageId}.awp?verbe=get&mode=destinataire&v=4.98.0
 
 ## Changelog
-### V1.3 (current)
+### v26.5.1 (current)
+ - themes
+ - notes sur
+ - bug fixes
+### V1.3
  - Messages
  - Timeline
 ### V1.2
