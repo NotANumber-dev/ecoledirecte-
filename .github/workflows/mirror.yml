@@ -16,6 +16,6 @@ jobs:
           CODEBERG_TOKEN: ${{ secrets.CODEBERG_TOKEN }}
           CODEBERG_REPO: ${{ secrets.CODEBERG_REPO }}
         run: |
-          git remote add codeberg https://$CODEBERG_USERNAME:$CODEBERG_TOKEN@codeberg.org/$CODEBERG_USERNAME/$CODEBERG_REPO.git
+          git remote add codeberg https://$CODEBERG_USERNAME:$CODEBERG_TOKEN@codeberg.org/leafnetwork/ecoledirecte-.git
           git push --force --all codeberg
           git push --force --tags codeberg
