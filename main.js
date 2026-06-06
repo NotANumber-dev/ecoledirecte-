@@ -2148,7 +2148,7 @@
                     m.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000001;display:flex;align-items:center;justify-content:center;';
                     var c = document.createElement('div');
                     c.style.cssText = 'background:#1C1C2E;border-radius:8px;padding:24px;max-width:360px;width:90%;text-align:center;';
-                    c.innerHTML = '<h2 style="color:#5E5EFF;margin-bottom:10px;">EcoleDirecte -</h2><p style="color:#E0E0E0;font-size:13px;line-height:1.6;margin-bottom:16px;">v26.6.1<br>notes enfin simulables<br>et desactivables <br> envoyeurs masquables<br><a href="https://github.com/NotANumber-dev/ecoledirecte-" target="_blank" style="color:#5E5EFF;">GitHub</a></p><button id="closeInfo" style="background:#5E5EFF;border:none;padding:10px 20px;border-radius:6px;color:white;font-weight:600;cursor:pointer;">Fermer</button>';
+                    c.innerHTML = '<h2 style="color:#5E5EFF;margin-bottom:10px;">EcoleDirecte -</h2><p style="color:#E0E0E0;font-size:13px;line-height:1.6;margin-bottom:16px;">v26.6.2<br>Beaucoup de changements<br>lis le manuel d'utilisation <br>(vers11-15 juin) <br><a href="https://github.com/NotANumber-dev/ecoledirecte-" target="_blank" style="color:#5E5EFF;">GitHub</a></p><button id="closeInfo" style="background:#5E5EFF;border:none;padding:10px 20px;border-radius:6px;color:white;font-weight:600;cursor:pointer;">Fermer</button>';
                     m.appendChild(c);
                     document.body.appendChild(m);
                     m.onclick = function(e) { if (e.target === m) m.remove(); };
