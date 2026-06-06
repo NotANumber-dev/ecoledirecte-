@@ -2094,8 +2094,7 @@
                     appliquerRond(parseInt(this.value));
                   });
                 }
-
-                // Bouton Manuel d'utilisation (avec iframe style Safari)
+                
                 var manuelBtn = document.getElementById('manuelBtn');
                 if (manuelBtn) {
                   manuelBtn.addEventListener('click', function() {
@@ -2142,7 +2141,6 @@
                 document.addEventListener('touchmove', function(e) { bougerGlisse(e.touches[0].clientX); });
                 document.addEventListener('touchend', finGlisse);
                 
-                // Bouton Info (ancienne modale sans iframe)
                 var btnInfo = document.getElementById('infoBtn');
                 if (btnInfo) {
                   btnInfo.addEventListener('click', function() {
@@ -2158,8 +2156,7 @@
                   });
                 }
               }
-
-              // Fonction pour le manuel (style Safari)
+              
               function ouvrirIframeModal(url, afficherUrl) {
                 var modal = document.createElement('div');
                 modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:10000003;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);';
