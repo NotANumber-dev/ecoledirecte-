@@ -1093,10 +1093,10 @@
       html += '<p style="color:#8E8E93;">'+affichageTri+'</p></div>';
       html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">';
       html += '<button id="ajoutSimuBtn" style="background:#FFA500;border:none;padding:8px 14px;border-radius:6px;color:white;font-size:13px;font-weight:600;cursor:pointer;">+ Note simulée</button>';
-      html += '<button id="viderSimuBtn" style="background:#FF2D2D;border:none;padding:8px 14px;border-radius:6px;color:white;font-size:13px;font-weight:600;cursor:pointer;">🗑️ Effacer simulées</button>';
+      html += '<button id="viderSimuBtn" style="background:#FF2D2D;border:none;padding:8px 14px;border-radius:6px;color:white;font-size:13px;font-weight:600;cursor:pointer;">Effacer toutes les simulées</button>';
       html += '</div>';
       if (notesMatiere.length === 0 && (!simu[matiere]||!simu[matiere].length)) {
-        html += '<div class="empty-state"><p>Aucune note trouvée</p></div>';
+        html += '<div class="empty-state"><p>Aucune note</p></div>';
       } else {
         html += '<div style="background:#1C1C2E;border-radius:8px;overflow:hidden;">';
         var masques = cache[matiere] || [];
@@ -1206,9 +1206,9 @@
       document.getElementById('simAnnule').addEventListener('click', function() { modal.remove(); });
       document.getElementById('simSauve').addEventListener('click', function() {
         var val=parseFloat(document.getElementById('simValeur').value), max=parseFloat(document.getElementById('simMax').value), coef=parseFloat(document.getElementById('simCoef').value);
-        if (isNaN(val)||isNaN(max)||isNaN(coef)) { alert('Nombres valides requis'); return; }
-        if (val<0||max<=0||coef<=0) { alert('Nombres positifs requis'); return; }
-        if (val>max) { alert('La note ne peut dépasser le maximum'); return; }
+        if (isNaN(val)||isNaN(max)||isNaN(coef)) { alert('invalide'); return; }
+        if (val<0||max<=0||coef<=0) { alert('faut pas abuser quand meme'); return; }
+        if (val>max) { alert('La note ne peut dépasser le max'); return; }
         if (!simu[matiere]) simu[matiere]=[];
         if (!simuAct[matiere]) simuAct[matiere]=[];
         simu[matiere].push({value:val,max:max,coef:coef});
