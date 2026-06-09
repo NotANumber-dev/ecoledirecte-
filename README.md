@@ -52,16 +52,13 @@ Debug/test panel: https://www.icloud.com/shortcuts/b51d6ab0ad4048588a5ddc57356e9
 Toujours pas convaincu ? Regarde le code (main.js) et/ou les requêtes effectuées
 
 ## broken to fix
--masquer nom prof marche pas: toujours off
 -bug avec la messagerie qui s'overlaytoute seule
 -certains elements n'ont pas de themes
 -infos n'as pas de police
--enregistrer la session n'est pas desactivable
 
 ## a faire
 -manuel
 -meilleur ui devoirs
--ne pas redemander et utiliser une ancienne session sur une recente
 **Raccourci** :
 
 GET https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/main.js (Release)
