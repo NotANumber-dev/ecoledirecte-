@@ -61,7 +61,7 @@ Toujours pas convaincu ? Regarde le code (main.js) et/ou les requêtes effectué
 ## a faire
 -manuel
 -meilleur ui devoirs
-
+-ne pas redemander et utiliser une ancienne session sur une recente
 **Raccourci** :
 
 GET https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/main.js (Release)
