@@ -51,9 +51,16 @@ Debug/test panel: https://www.icloud.com/shortcuts/b51d6ab0ad4048588a5ddc57356e9
 
 Toujours pas convaincu ? Regarde le code (main.js) et/ou les requêtes effectuées
 
-## Requêtes
+## broken to fix
+-masquer nom prof marche pas: toujours off
+-bug avec la messagerie qui s'overlaytoute seule
+-certains elements n'ont pas de themes
+-infos n'as pas de police
+-enregistrer la session n'est pas desactivable
 
-Voila TOUTES les requêtes effectuées durant l'éxécution du raccourci (vérifiable dans le code):
+## a faire
+-manuel
+-meilleur ui devoirs
 
 **Raccourci** :
 
@@ -86,7 +93,10 @@ POST https://api.ecoledirecte.com/v3/Eleves/${id}/cahierdetexte/${dateKey}.awp?v
 POST https://api.ecoledirecte.com/v3/eleves/${id}/messages/${messageId}.awp?verbe=get&mode=destinataire&v=4.98.0
 
 ## Changelog
-### v26.5.1 (current)
+
+plus mis a jour, regarde le manuel
+no longer updated, look at the manual
+### v26.5.1
  - themes
  - notes sur
  - bug fixes
