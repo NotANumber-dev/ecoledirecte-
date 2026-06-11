@@ -1,0 +1,5 @@
+NAME_test
+DESC:test app to test fetch
+require:app.html
+dev@notanumber-dev
+VER_1.0
