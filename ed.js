@@ -447,24 +447,24 @@
                 var mat = tris[triKey].matieres[matiere];
                 if (!mat) return null;
                 if (desact[matiere]) return null;
-                var notesMatiere = notesOrig.filter(function(n) { return n.libelleMatiere === matiere && n.codePeriode === triKey; });
+                var notesMatiere = notesOrig.filter(function(n){ return n.libelleMatiere===matiere && n.codePeriode===triKey; });
                 var masque = cache[matiere] || [];
                 var totalSomme = 0, totalCoef = 0;
-                for (var i = 0; i < notesMatiere.length; i++) {
+                for (var i=0; i<notesMatiere.length; i++) {
                     if (masque.includes(i)) continue;
                     var n = notesMatiere[i];
                     var v = n.valeur;
-                    if (!v || v === "" || v === "NE" || v === "Abs" || n.nonSignificatif) continue;
-                    var nv = parseFloat(v.replace(',', '.'));
+                    if (!v || v==="" || v==="NE" || v==="Abs" || n.nonSignificatif) continue;
+                    var nv = parseFloat(v.replace(',','.'));
                     if (isNaN(nv)) continue;
-                    var ns = parseFloat(n.noteSur) || 20;
+                    var ns = parseFloat(n.noteSur)||20;
                     var co = parseFloat(n.coef) || 1;
-                    totalSomme += (nv / ns) * 20 * co;
+                    totalSomme += (nv/ns)*20*co;
                     totalCoef += co;
                 }
                 var simGrades = simu[matiere] || [];
                 var enabSim = simuAct[matiere] || [];
-                for (var s = 0; s < simGrades.length; s++) {
+                for (var s=0; s<simGrades.length; s++) {
                     if (enabSim[s] !== false) {
                         var sim = simGrades[s];
                         var simVal = parseFloat(sim.value);
@@ -480,81 +480,75 @@
             }
 
             function moyTriAvecSimu(triKey) {
-                var totalW = 0, totalC = 0;
                 var triData = tris[triKey];
+                var sumMoys = 0, countMats = 0;
                 for (var mat in triData.matieres) {
                     if (desact[mat]) continue;
-                    var notesMatiere = notesOrig.filter(function(n) { return n.libelleMatiere === mat && n.codePeriode === triKey; });
-                    var masque = cache[mat] || [];
-                    for (var i = 0; i < notesMatiere.length; i++) {
-                        if (masque.includes(i)) continue;
-                        var n = notesMatiere[i];
-                        var v = n.valeur;
-                        if (!v || v === "" || v === "NE" || v === "Abs" || n.nonSignificatif) continue;
-                        var nv = parseFloat(v.replace(',', '.'));
-                        if (isNaN(nv)) continue;
-                        var ns = parseFloat(n.noteSur) || 20;
-                        var co = parseFloat(n.coef) || 1;
-                        totalW += (nv / ns) * 20 * co;
-                        totalC += co;
+                    var m = triData.matieres[mat];
+                    if (m.sommeCoef > 0) {
+                        sumMoys += m.somme / m.sommeCoef;
+                        countMats++;
                     }
                     var simGrades = simu[mat] || [];
                     var enabSim = simuAct[mat] || [];
-                    for (var s = 0; s < simGrades.length; s++) {
+                    var simTotal = 0, simCoefTotal = 0;
+                    for (var s=0; s<simGrades.length; s++) {
                         if (enabSim[s] !== false) {
                             var sim = simGrades[s];
-                            var simVal = parseFloat(sim.value), simMax = parseFloat(sim.max), simCoef = parseFloat(sim.coef) || 1;
+                            var simVal = parseFloat(sim.value), simMax = parseFloat(sim.max), simCoef = parseFloat(sim.coef)||1;
                             if (!isNaN(simVal) && !isNaN(simMax) && simMax > 0) {
-                                totalW += (simVal / simMax) * 20 * simCoef;
-                                totalC += simCoef;
+                                simTotal += (simVal/simMax)*20*simCoef;
+                                simCoefTotal += simCoef;
                             }
                         }
                     }
+                    if (simCoefTotal > 0) {
+                        sumMoys += simTotal / simCoefTotal;
+                        countMats++;
+                    }
                 }
-                return totalC > 0 ? totalW / totalC : null;
+                return countMats > 0 ? sumMoys / countMats : null;
             }
 
             function moyAnnuelleAvecSimu() {
-                var totalW = 0, totalC = 0;
+                var allMats = {};
                 for (var t in tris) {
                     for (var m in tris[t].matieres) {
                         if (desact[m]) continue;
-                        var notesMatiere = notesOrig.filter(function(n) { return n.libelleMatiere === m && n.codePeriode === t; });
-                        var masque = cache[m] || [];
-                        for (var i = 0; i < notesMatiere.length; i++) {
-                            if (masque.includes(i)) continue;
-                            var n = notesMatiere[i];
-                            var v = n.valeur;
-                            if (!v || v === "" || v === "NE" || v === "Abs" || n.nonSignificatif) continue;
-                            var nv = parseFloat(v.replace(',', '.'));
-                            if (isNaN(nv)) continue;
-                            var ns = parseFloat(n.noteSur) || 20;
-                            var co = parseFloat(n.coef) || 1;
-                            totalW += (nv / ns) * 20 * co;
-                            totalC += co;
+                        if (!allMats[m]) allMats[m] = { sommeMoys: 0, nbTris: 0 };
+                        var mat = tris[t].matieres[m];
+                        if (mat.sommeCoef > 0) {
+                            allMats[m].sommeMoys += mat.somme / mat.sommeCoef;
+                            allMats[m].nbTris++;
                         }
                         var simGrades = simu[m] || [];
                         var enabSim = simuAct[m] || [];
-                        for (var s = 0; s < simGrades.length; s++) {
+                        var simTotal = 0, simCoefTotal = 0;
+                        for (var s=0; s<simGrades.length; s++) {
                             if (enabSim[s] !== false) {
                                 var sim = simGrades[s];
-                                var simVal = parseFloat(sim.value), simMax = parseFloat(sim.max), simCoef = parseFloat(sim.coef) || 1;
+                                var simVal = parseFloat(sim.value), simMax = parseFloat(sim.max), simCoef = parseFloat(sim.coef)||1;
                                 if (!isNaN(simVal) && !isNaN(simMax) && simMax > 0) {
-                                    totalW += (simVal / simMax) * 20 * simCoef;
-                                    totalC += simCoef;
+                                    simTotal += (simVal/simMax)*20*simCoef;
+                                    simCoefTotal += simCoef;
                                 }
                             }
                         }
+                        if (simCoefTotal > 0) {
+                            allMats[m].sommeMoys += simTotal / simCoefTotal;
+                            allMats[m].nbTris++;
+                        }
                     }
                 }
-                return totalC > 0 ? totalW / totalC : null;
-            }
-
-            
-            
-            
-
-            window.basculerMasque = function(matiere, idx) {
+                var sumMoys = 0, countMats = 0;
+                for (var m in allMats) {
+                    if (allMats[m].nbTris > 0) {
+                        sumMoys += allMats[m].sommeMoys / allMats[m].nbTris;
+                        countMats++;
+                    }
+                }
+                return countMats > 0 ? sumMoys / countMats : null;
+            }window.basculerMasque = function(matiere, idx) {
                 if (!cache[matiere]) cache[matiere] = [];
                 var i = cache[matiere].indexOf(idx);
                 if (i === -1) cache[matiere].push(idx);
@@ -1679,10 +1673,6 @@
                 cont.innerHTML = html;
             }
 
-            // ==========================================
-            // APPS SYSTEM
-            // ==========================================
-
             function isVerified(devString, baseUrl) {
                 var checkStr = (devString + " " + baseUrl).toLowerCase();
                 var verifiedList = [
@@ -1915,6 +1905,7 @@
             function param() {
                 var cont = document.getElementById('ed-content');
                 if (!cont) return;
+                var settingsTab = localStorage.getItem('ed_settingsTab') || 'general';
                 var saveSur = localStorage.getItem('ed_notesSur') || '20';
                 var saveProf = localStorage.getItem('ed_showProfName') === 'true';
                 var saveTheme = localStorage.getItem('ed_theme') || 'ED-classic';
@@ -1924,146 +1915,183 @@
                 var saveRond = parseInt(localStorage.getItem('ed_roundness') || '8');
                 var saveAutoToken = localStorage.getItem('ed_autoToken') !== 'false';
                 var saveAppsTab = localStorage.getItem('ed_showAppsTab') !== 'false';
+
                 var html = '<div class="settings-container">';
                 html += '<div style="background:#1C1C2E;border-radius:8px;padding:20px;margin-bottom:16px;">';
                 html += '<h2 style="color:#5E5EFF;margin-bottom:16px;">Parametres</h2>';
-                html += '<div style="margin-bottom:16px;"><label style="color:white;display:block;margin-bottom:4px;">Notes sur</label>';
-                html += '<input type="number" id="notesSurInput" value="' + saveSur + '" step="1" min="0" max="20" style="width:100%;padding:8px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;"></div>';
-                html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #2C2C44;margin-bottom:14px;">';
-                html += '<label style="color:white;">Enregistrer la session</label>';
-                html += '<input type="checkbox" id="autoTokenToggle" ' + (saveAutoToken ? 'checked' : '') + ' style="width:18px;height:18px;cursor:pointer;"></div>';
-                html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #2C2C44;margin-bottom:14px;">';
-                html += '<label style="color:white;">Afficher Apps</label>';
-                html += '<input type="checkbox" id="appsTabToggle" ' + (saveAppsTab ? 'checked' : '') + ' style="width:18px;height:18px;cursor:pointer;"></div>';
-                html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #2C2C44;margin-bottom:14px;">';
-                html += '<label style="color:white;">Masquer le nom du prof</label>';
-                html += '<input type="checkbox" id="profToggle" ' + (saveProf ? 'checked' : '') + ' style="width:18px;height:18px;cursor:pointer;"></div>';
-                html += '<div style="margin-bottom:14px;"><label style="color:white;display:block;margin-bottom:4px;">Theme [BETA]</label>';
-                html += '<select id="themeSelect" style="width:100%;padding:8px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;">';
-                ["ED-classic", "Solar Flare", "Neon Tide", "Dusk", "Arctic", "Glacier", "Emerald", "Blaze", "Solar", "ED-light", "ED-OLED", "custom1", "custom2", "feu", "world"].forEach(function(t) { html += '<option value="' + t + '" ' + (t === saveTheme ? 'selected' : '') + '>' + t + '</option>'; });
-                html += '</select></div>';
-                html += '<div style="margin-bottom:14px;"><label style="color:white;display:block;margin-bottom:4px;">Menu</label>';
-                html += '<select id="menuPosSelect" style="width:100%;padding:8px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;">';
-                html += '<option value="haut" ' + (savePos === 'haut' ? 'selected' : '') + '>Haut</option>';
-                html += '<option value="cote" ' + (savePos === 'cote' ? 'selected' : '') + '>sidebar</option>';
-                html += '</select></div>';
-                html += '<div style="margin-bottom:14px;"><label style="color:white;display:block;margin-bottom:4px;">Affichage des notes</label>';
-                html += '<select id="notesAffSelect" style="width:100%;padding:8px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;">';
-                html += '<option value="pastilles" ' + (saveAff === 'pastilles' ? 'selected' : '') + '>blocs</option>';
-                html += '<option value="liste" ' + (saveAff === 'liste' ? 'selected' : '') + '>Liste</option>';
-                html += '</select></div>';
-                html += '<div style="margin-bottom:14px;"><label style="color:white;display:block;margin-bottom:4px;">Photo de profil</label>';
-                html += '<select id="placeIconeSelect" style="width:100%;padding:8px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;">';
-                html += '<option value="1" ' + (savePlace === '1' ? 'selected' : '') + '>1</option>';
-                html += '<option value="2" ' + (savePlace === '2' ? 'selected' : '') + '>2</option>';
-                html += '</select></div>';
-                html += '<div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #2C2C44;">';
-                html += '<label style="color:white;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">Arrondi <span id="rondValLabel" style="color:#5E5EFF;">' + saveRond + 'px</span></label>';
-                html += '<div style="display:flex;align-items:center;gap:10px;">';
-                html += '<span style="color:#8E8E93;">0</span>';
-                html += '<input type="range" id="rondSlider" min="0" max="50" value="' + saveRond + '" style="flex:1;accent-color:#5E5EFF;cursor:pointer;">';
-                html += '<span style="color:#8E8E93;">50px</span>';
-                html += '</div></div>';
-                html += '<div style="margin-bottom:16px;">';
-                html += '<button id="manuelBtn" style="width:100%;padding:12px;background:#2C2C44;border:none;border-radius:6px;color:#5E5EFF;font-weight:600;cursor:pointer;margin-bottom:10px;">Manuel d\'utilisation</button>';
+                html += '<div style="display:flex;gap:6px;margin-bottom:20px;background:#0B0B1A;padding:6px;border-radius:8px;">';
+                ['general', 'graphique', 'notes', 'plus'].forEach(function(t) {
+                    var isActive = settingsTab === t;
+                    var label = t.charAt(0).toUpperCase() + t.slice(1);
+                    if(t === 'graphique') label = 'Graphique';
+                    html += '<button class="settings-sub-tab" data-tab="'+t+'" style="flex:1;padding:10px;background:'+(isActive?'#5E5EFF':'transparent')+';color:'+(isActive?'white':'#8E8E93')+';border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s;">'+label+'</button>';
+                });
                 html += '</div>';
-                html += '<div style="margin-top:20px;padding-top:16px;border-top:1px solid #2C2C44;">';
-                html += '<button id="effacerBtn" style="width:100%;padding:12px;background:#FF2D2D;border:none;border-radius:6px;color:white;font-weight:600;cursor:pointer;">Tout effacer</button>';
-                html += '<div id="glisseConfirm" style="display:none;background:#1C1C2E;border-radius:8px;padding:4px;position:relative;height:50px;overflow:hidden;margin-top:10px;">';
-                html += '<div id="glisseTrack" style="width:100%;height:100%;background:#2C2C44;border-radius:6px;position:relative;">';
-                html += '<div id="glisseHandle" style="width:50px;height:50px;background:#FF2D2D;border-radius:6px;position:absolute;left:0;top:0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;z-index:2;">→</div>';
-                html += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#8E8E93;pointer-events:none;z-index:1;">Glisse pour confirmer</div>';
+                html += '<div id="settings-content">';
+
+                if (settingsTab === 'general') {
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2C2C44;margin-bottom:14px;">';
+                    html += '<label style="color:white;">Enregistrer la session</label>';
+                    html += '<input type="checkbox" id="autoTokenToggle" ' + (saveAutoToken ? 'checked' : '') + ' style="width:20px;height:20px;cursor:pointer;accent-color:#5E5EFF;"></div>';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2C2C44;margin-bottom:14px;">';
+                    html += '<label style="color:white;">Afficher Apps</label>';
+                    html += '<input type="checkbox" id="appsTabToggle" ' + (saveAppsTab ? 'checked' : '') + ' style="width:20px;height:20px;cursor:pointer;accent-color:#5E5EFF;"></div>';
+                    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #2C2C44;margin-bottom:14px;">';
+                    html += '<label style="color:white;">Masquer le nom du prof</label>';
+                    html += '<input type="checkbox" id="profToggle" ' + (saveProf ? 'checked' : '') + ' style="width:20px;height:20px;cursor:pointer;accent-color:#5E5EFF;"></div>';
+                } else if (settingsTab === 'graphique') {
+                    html += '<div style="margin-bottom:16px;"><label style="color:white;display:block;margin-bottom:6px;font-weight:600;">Theme [BETA]</label>';
+                    html += '<select id="themeSelect" style="width:100%;padding:10px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;">';
+                    ["ED-classic", "Solar Flare", "Neon Tide", "Dusk", "Arctic", "Glacier", "Emerald", "Blaze", "Solar", "ED-light", "ED-OLED", "custom1", "custom2", "feu", "world"].forEach(function(t) { html += '<option value="' + t + '" ' + (t === saveTheme ? 'selected' : '') + '>' + t + '</option>'; });
+                    html += '</select></div>';
+                    html += '<div style="margin-bottom:16px;"><label style="color:white;display:block;margin-bottom:6px;font-weight:600;">Menu</label>';
+                    html += '<select id="menuPosSelect" style="width:100%;padding:10px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;">';
+                    html += '<option value="haut" ' + (savePos === 'haut' ? 'selected' : '') + '>Haut</option>';
+                    html += '<option value="cote" ' + (savePos === 'cote' ? 'selected' : '') + '>Sidebar</option>';
+                    html += '</select></div>';
+                    html += '<div style="margin-bottom:16px;"><label style="color:white;display:block;margin-bottom:6px;font-weight:600;">Affichage des notes</label>';
+                    html += '<select id="notesAffSelect" style="width:100%;padding:10px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;">';
+                    html += '<option value="pastilles" ' + (saveAff === 'pastilles' ? 'selected' : '') + '>Blocs</option>';
+                    html += '<option value="liste" ' + (saveAff === 'liste' ? 'selected' : '') + '>Liste</option>';
+                    html += '</select></div>';
+                    html += '<div style="margin-bottom:16px;"><label style="color:white;display:block;margin-bottom:6px;font-weight:600;">Photo de profil</label>';
+                    html += '<select id="placeIconeSelect" style="width:100%;padding:10px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;">';
+                    html += '<option value="1" ' + (savePlace === '1' ? 'selected' : '') + '>Gauche/Haut</option>';
+                    html += '<option value="2" ' + (savePlace === '2' ? 'selected' : '') + '>Droite/Bas</option>';
+                    html += '</select></div>';
+                    html += '<div style="margin-bottom:16px;">';
+                    html += '<label style="color:white;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:600;">Arrondi <span id="rondValLabel" style="color:#5E5EFF;">' + saveRond + 'px</span></label>';
+                    html += '<input type="range" id="rondSlider" min="0" max="50" value="' + saveRond + '" style="width:100%;accent-color:#5E5EFF;cursor:pointer;">';
+                    html += '</div>';
+                } else if (settingsTab === 'notes') {
+                    html += '<div style="margin-bottom:16px;"><label style="color:white;display:block;margin-bottom:6px;font-weight:600;">Notes sur</label>';
+                    html += '<input type="number" id="notesSurInput" value="' + saveSur + '" step="1" min="0" max="20" style="width:100%;padding:10px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;"></div>';
+                } else if (settingsTab === 'plus') {
+                    html += '<button id="manuelBtn" style="width:100%;padding:14px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:8px;color:#5E5EFF;font-weight:600;cursor:pointer;margin-bottom:12px;font-size:14px;">Manuel d\'utilisation</button>';
+                    html += '<button id="infoBtn" style="width:100%;padding:14px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:8px;color:#5E5EFF;font-weight:600;cursor:pointer;margin-bottom:20px;font-size:14px;">Info</button>';
+                    html += '<div style="border-top:1px solid #2C2C44;padding-top:20px;">';
+                    html += '<button id="effacerBtn" style="width:100%;padding:14px;background:#FF2D2D;border:none;border-radius:8px;color:white;font-weight:600;cursor:pointer;font-size:14px;">Tout effacer</button>';
+                    html += '<div id="glisseConfirm" style="display:none;background:#0B0B1A;border-radius:8px;padding:4px;position:relative;height:56px;overflow:hidden;margin-top:12px;">';
+                    html += '<div id="glisseTrack" style="width:100%;height:100%;background:#1C1C2E;border-radius:6px;position:relative;">';
+                    html += '<div id="glisseHandle" style="width:56px;height:56px;background:#FF2D2D;border-radius:6px;position:absolute;left:0;top:0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;z-index:2;font-size:20px;">→</div>';
+                    html += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#8E8E93;pointer-events:none;z-index:1;font-size:13px;">Glisse pour confirmer</div>';
+                    html += '</div></div></div>';
+                }
                 html += '</div></div></div>';
-                html += '</div></div>';
                 cont.innerHTML = html;
-                var inpSur = document.getElementById('notesSurInput');
-                var toggleProf = document.getElementById('profToggle');
-                var selTheme = document.getElementById('themeSelect');
-                var autoToken = document.getElementById('autoTokenToggle');
+
+                document.querySelectorAll('.settings-sub-tab').forEach(function(btn) {
+                    btn.addEventListener('click', function() {
+                        localStorage.setItem('ed_settingsTab', this.getAttribute('data-tab'));
+                        param();
+                    });
+                });
+
                 function appliquerParams() {
-                    var nn = inpSur.value;
-                    var np = toggleProf.checked;
-                    var nt = selTheme.value;
-                    var nm = document.getElementById('menuPosSelect').value;
-                    var na = document.getElementById('notesAffSelect').value;
-                    var ni = document.getElementById('placeIconeSelect').value;
-                    var at = autoToken.checked;
-                    var appsTab = document.getElementById('appsTabToggle').checked;
-                    localStorage.setItem('ed_notesSur', nn);
-                    localStorage.setItem('ed_showProfName', np);
-                    localStorage.setItem('ed_theme', nt);
-                    localStorage.setItem('ed_menuPos', nm);
-                    localStorage.setItem('ed_notesDisplay', na);
-                    localStorage.setItem('ed_iconPlace', ni);
-                    localStorage.setItem('ed_autoToken', at);
-                    localStorage.setItem('ed_showAppsTab', appsTab);
-                    sur = nn; profNom = np; pos = nm; aff = na; place = ni;
-                    appliquerTheme(nt);
-                    appliquerMenu();
-                    appliquerPlace();
-                    updateAppsVisibility();
+                    var inpSur = document.getElementById('notesSurInput');
+                    var toggleProf = document.getElementById('profToggle');
+                    var selTheme = document.getElementById('themeSelect');
+                    var autoToken = document.getElementById('autoTokenToggle');
+                    var appsTab = document.getElementById('appsTabToggle');
+                    var menuPos = document.getElementById('menuPosSelect');
+                    var notesAff = document.getElementById('notesAffSelect');
+                    var placeIcone = document.getElementById('placeIconeSelect');
+
+                    if (inpSur) { localStorage.setItem('ed_notesSur', inpSur.value); sur = inpSur.value; }
+                    if (toggleProf) { localStorage.setItem('ed_showProfName', toggleProf.checked); profNom = toggleProf.checked; }
+                    if (selTheme) { localStorage.setItem('ed_theme', selTheme.value); appliquerTheme(selTheme.value); }
+                    if (autoToken) { localStorage.setItem('ed_autoToken', autoToken.checked); }
+                    if (appsTab) { localStorage.setItem('ed_showAppsTab', appsTab.checked); updateAppsVisibility(); }
+                    if (menuPos) { localStorage.setItem('ed_menuPos', menuPos.value); pos = menuPos.value; appliquerMenu(); }
+                    if (notesAff) { localStorage.setItem('ed_notesDisplay', notesAff.value); aff = notesAff.value; }
+                    if (placeIcone) { localStorage.setItem('ed_iconPlace', placeIcone.value); place = placeIcone.value; appliquerPlace(); }
+
                     if (onglet === 'notes') notes();
                     else if (onglet === 'accueil') accueil();
                     if (onglet === 'carnet2') carnet2();
                 }
-                inpSur.addEventListener('change', appliquerParams);
-                toggleProf.addEventListener('change', appliquerParams);
-                selTheme.addEventListener('change', appliquerParams);
-                autoToken.addEventListener('change', appliquerParams);
-                document.getElementById('menuPosSelect').addEventListener('change', appliquerParams);
-                document.getElementById('notesAffSelect').addEventListener('change', appliquerParams);
-                document.getElementById('placeIconeSelect').addEventListener('change', appliquerParams);
-                document.getElementById('appsTabToggle').addEventListener('change', appliquerParams);
-                var slRond = document.getElementById('rondSlider');
-                var lbRond = document.getElementById('rondValLabel');
-                if (slRond) { slRond.addEventListener('input', function() { lbRond.textContent = this.value + 'px'; appliquerRond(parseInt(this.value)); }); }
-                var manuelBtn = document.getElementById('manuelBtn');
-                if (manuelBtn) {
-                    manuelBtn.addEventListener('click', function() {
-                        ouvrirIframeModal('https://notanumber-dev.github.io/ed-/manuel', 'manuel');
-                    });
-                }
-                var btnEffacer = document.getElementById('effacerBtn');
-                var divGlisse = document.getElementById('glisseConfirm');
-                var handleGlisse = document.getElementById('glisseHandle');
-                var trackGlisse = document.getElementById('glisseTrack');
-                if (btnEffacer) { btnEffacer.addEventListener('click', function() { divGlisse.style.display = 'block'; handleGlisse.style.left = '0px'; }); }
-                var glisseActif = false, debutX = 0, largeurHandle = 50, largeurTrack = 0;
-                function demarrerGlisse(x) { glisseActif = true; debutX = x; largeurTrack = trackGlisse.offsetWidth; }
-                function bougerGlisse(x) {
-                    if (!glisseActif) return;
-                    var d = x - debutX;
-                    var nl = Math.max(0, Math.min(largeurTrack - largeurHandle, d));
-                    handleGlisse.style.left = nl + 'px';
-                    if (nl >= largeurTrack - largeurHandle - 5) {
+
+                if (settingsTab === 'general') {
+                    document.getElementById('autoTokenToggle').addEventListener('change', appliquerParams);
+                    document.getElementById('appsTabToggle').addEventListener('change', appliquerParams);
+                    document.getElementById('profToggle').addEventListener('change', appliquerParams);
+                } else if (settingsTab === 'graphique') {
+                    document.getElementById('themeSelect').addEventListener('change', appliquerParams);
+                    document.getElementById('menuPosSelect').addEventListener('change', appliquerParams);
+                    document.getElementById('notesAffSelect').addEventListener('change', appliquerParams);
+                    document.getElementById('placeIconeSelect').addEventListener('change', appliquerParams);
+                    var slRond = document.getElementById('rondSlider');
+                    var lbRond = document.getElementById('rondValLabel');
+                    if (slRond) {
+                        slRond.addEventListener('input', function() {
+                            lbRond.textContent = this.value + 'px';
+                            appliquerRond(parseInt(this.value));
+                        });
+                    }
+                } else if (settingsTab === 'notes') {
+                    document.getElementById('notesSurInput').addEventListener('change', appliquerParams);
+                } else if (settingsTab === 'plus') {
+                    var manuelBtn = document.getElementById('manuelBtn');
+                    if (manuelBtn) manuelBtn.addEventListener('click', function() { ouvrirIframeModal('https://notanumber-dev.github.io/ed-/manuel', 'manuel'); });
+
+                    var btnInfo = document.getElementById('infoBtn');
+                    if (btnInfo) {
+                        btnInfo.addEventListener('click', function() {
+                            var m = document.createElement('div');
+                            m.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:10000001;display:flex;align-items:center;justify-content:center;';
+                            var c = document.createElement('div');
+                            c.style.cssText = 'background:#1C1C2E;border-radius:8px;padding:24px;max-width:360px;width:90%;text-align:center;';
+                            c.innerHTML = '<h2 style="color:#5E5EFF;margin-bottom:10px;">EcoleDirecte</h2><p style="color:#E0E0E0;font-size:13px;line-height:1.6;margin-bottom:16px;">Version 26.6.7<br>Corrections et ameliorations<br><br><a href="https://github.com/NotANumber-dev/ecoledirecte-" target="_blank" style="color:#5E5EFF;">GitHub</a></p><button id="closeInfo" style="background:#5E5EFF;border:none;padding:10px 20px;border-radius:6px;color:white;font-weight:600;cursor:pointer;">Fermer</button>';
+                            m.appendChild(c);
+                            document.body.appendChild(m);
+                            m.onclick = function(e) { if (e.target === m) m.remove(); };
+                            document.getElementById('closeInfo').addEventListener('click', function() { m.remove(); });
+                        });
+                    }
+
+                    var btnEffacer = document.getElementById('effacerBtn');
+                    var divGlisse = document.getElementById('glisseConfirm');
+                    var handleGlisse = document.getElementById('glisseHandle');
+                    var trackGlisse = document.getElementById('glisseTrack');
+                    if (btnEffacer) btnEffacer.addEventListener('click', function() { divGlisse.style.display = 'block'; handleGlisse.style.left = '0px'; });
+
+                    var glisseActif = false, debutX = 0, largeurHandle = 56, largeurTrack = 0;
+                    function demarrerGlisse(x) { glisseActif = true; debutX = x; largeurTrack = trackGlisse.offsetWidth; }
+                    function bougerGlisse(x) {
+                        if (!glisseActif) return;
+                        var d = x - debutX;
+                        var nl = Math.max(0, Math.min(largeurTrack - largeurHandle, d));
+                        handleGlisse.style.left = nl + 'px';
+                        if (nl >= largeurTrack - largeurHandle - 5) {
+                            glisseActif = false;
+                            var keys = [];
+                            for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.startsWith('ed_')) keys.push(k); }
+                            keys.forEach(function(k) { localStorage.removeItem(k); });
+                            clearLocalToken();
+                            sessionStorage.removeItem("credentials");
+                            sessionStorage.removeItem("accounts");
+                            location.reload();
+                        }
+                    }
+                    function finGlisse() {
+                        if (!glisseActif) return;
                         glisseActif = false;
-                        var keys = [];
-                        for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.startsWith('ed_')) keys.push(k); }
-                        keys.forEach(function(k) { localStorage.removeItem(k); });
-                        clearLocalToken();
-                        sessionStorage.removeItem("credentials");
-                        sessionStorage.removeItem("accounts");
-                        location.reload();
+                        var cl = parseInt(handleGlisse.style.left);
+                        if (cl < largeurTrack - largeurHandle - 5) {
+                            handleGlisse.style.transition = 'left 0.3s ease';
+                            handleGlisse.style.left = '0px';
+                            setTimeout(function() { handleGlisse.style.transition = ''; }, 300);
+                        }
                     }
-                }
-                function finGlisse() {
-                    if (!glisseActif) return;
-                    glisseActif = false;
-                    var cl = parseInt(handleGlisse.style.left);
-                    if (cl < largeurTrack - largeurHandle - 5) {
-                        handleGlisse.style.transition = 'left 0.3s ease';
-                        handleGlisse.style.left = '0px';
-                        setTimeout(function() { handleGlisse.style.transition = ''; }, 300);
+                    if (handleGlisse) {
+                        handleGlisse.addEventListener('mousedown', function(e) { demarrerGlisse(e.clientX); });
+                        handleGlisse.addEventListener('touchstart', function(e) { demarrerGlisse(e.touches[0].clientX); });
                     }
+                    document.addEventListener('mousemove', function(e) { bougerGlisse(e.clientX); });
+                    document.addEventListener('mouseup', finGlisse);
+                    document.addEventListener('touchmove', function(e) { bougerGlisse(e.touches[0].clientX); });
+                    document.addEventListener('touchend', finGlisse);
                 }
-                if (handleGlisse) {
-                    handleGlisse.addEventListener('mousedown', function(e) { demarrerGlisse(e.clientX); });
-                    handleGlisse.addEventListener('touchstart', function(e) { demarrerGlisse(e.touches[0].clientX); });
-                }
-                document.addEventListener('mousemove', function(e) { bougerGlisse(e.clientX); });
-                document.addEventListener('mouseup', finGlisse);
-                document.addEventListener('touchmove', function(e) { bougerGlisse(e.touches[0].clientX); });
-                document.addEventListener('touchend', finGlisse);
             }
 
             function ouvrirIframeModal(url, afficherUrl) {
