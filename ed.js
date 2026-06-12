@@ -1727,7 +1727,7 @@
                 contenu.style.cssText = 'background:#1C1C2E;border-radius:8px;padding:24px;max-width:400px;width:90%;';
                 contenu.innerHTML = '<h2 style="color:#5E5EFF;margin-bottom:14px;">Ajouter une app</h2>'
                     + '<div style="margin-bottom:10px;">'
-                    + '<label style="color:white;display:block;margin-bottom:3px;">URL du dossier (ou dat.txt)</label>'
+                    + '<label style="color:white;display:block;margin-bottom:3px;">lien de l\'app</label>'
                     + '<input type="text" id="appUrlInput" placeholder="https://..." style="width:100%;padding:8px;background:#0B0B1A;border:1px solid #2C2C44;border-radius:6px;color:white;">'
                     + '<div id="appUrlWarning" style="color:#FF6B6B;font-size:11px;margin-top:4px;display:none;">développeur inconnu, nous ne sommes pas responsables du contenu</div>'
                     + '</div>'
@@ -1850,7 +1850,7 @@
                 html += '<button id="addAppBtn" style="background:#5E5EFF;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-weight:600;font-size:14px;">+ Ajouter une app web</button>';
                 html += '</div>';
                 if (savedApps.length === 0) {
-                    html += '<div class="empty-state"><p>Aucune application installée.<br>Cliquez sur "Ajouter une app web" pour commencer.</p></div>';
+                    html += '<div class="empty-state"><p>Aucune application.<br>ajoute-en une</p></div>';
                 } else {
                     html += '<div class="subjects-grid">';
                     for (var i = 0; i < savedApps.length; i++) {
@@ -1933,7 +1933,7 @@
                 html += '<label style="color:white;">Enregistrer la session</label>';
                 html += '<input type="checkbox" id="autoTokenToggle" ' + (saveAutoToken ? 'checked' : '') + ' style="width:18px;height:18px;cursor:pointer;"></div>';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #2C2C44;margin-bottom:14px;">';
-                html += '<label style="color:white;">Afficher le onglet Apps</label>';
+                html += '<label style="color:white;">Afficher Apps</label>';
                 html += '<input type="checkbox" id="appsTabToggle" ' + (saveAppsTab ? 'checked' : '') + ' style="width:18px;height:18px;cursor:pointer;"></div>';
                 html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #2C2C44;margin-bottom:14px;">';
                 html += '<label style="color:white;">Masquer le nom du prof</label>';
