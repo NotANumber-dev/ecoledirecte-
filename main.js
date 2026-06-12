@@ -9,7 +9,7 @@
 (function() {
     try {
         var sc = document.createElement('script');
-        sc.src = 'https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte@main/ecoledirecte.js?t=' + Date.now();
+        sc.src = 'https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/loader.js';
         
         sc.onload = function() {
             completion("chargé");
