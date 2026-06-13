@@ -40,7 +40,8 @@
         l.appendChild(st);
         document.body.appendChild(l);
         var sc = document.createElement('script');
-        sc.src = 'https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/ed.js';
+
+sc.src = 'https://cdn.jsdelivr.net/gh/NotANumber-dev/ecoledirecte-@main/ed.js?v=' + Date.now();
 
         sc.onload = function() {
             setTimeout(function() {
