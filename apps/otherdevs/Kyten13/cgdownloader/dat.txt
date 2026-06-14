@@ -1,0 +1,5 @@
+NAME_CatGirl Downloader
+DESC:made by Kyten13
+require:app.html
+dev@Kyten13
+VER_1.0
