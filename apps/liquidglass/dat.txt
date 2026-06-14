@@ -1,0 +1,5 @@
+NAME_liquid glass
+DESC:test de liquidglass avec des shaders
+require:main.html
+dev@notanumber-dev
+VER_1.0
