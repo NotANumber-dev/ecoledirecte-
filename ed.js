@@ -1,7 +1,7 @@
 (async () => {
 try {
     const ALERT_VERSION = "1"; 
-    const ALERT_MESSAGE = "met le raccourci a jour: no url"; 
+    const ALERT_MESSAGE = "met le raccourci a jour: https://www.icloud.com/shortcuts/0a587f62ec164d2a8933cdfed64ac845"; 
     
     if (localStorage.getItem('ed_alert_version') !== ALERT_VERSION) {
         alert(ALERT_MESSAGE);
