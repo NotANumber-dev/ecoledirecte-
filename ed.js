@@ -1,17 +1,17 @@
 (async () => {
 try {
-    const ALERT_VERSION = "1"; 
-    const ALERT_MESSAGE = "met le raccourci a jour: https://www.icloud.com/shortcuts/0a587f62ec164d2a8933cdfed64ac845"; 
+    const ALERT_VERSION = "1";
+    const ALERT_MESSAGE = "met le raccourci a jour: https://www.icloud.com/shortcuts/0a587f62ec164d2a8933cdfed64ac845";
     
     if (localStorage.getItem('ed_alert_version') !== ALERT_VERSION) {
         alert(ALERT_MESSAGE);
         localStorage.setItem('ed_alert_version', ALERT_VERSION);
-
+    }
 
     let tok = null;
     let id = null;
     let cpt = null;
-
+    
     try {
         const idt = JSON.parse(sessionStorage.getItem("credentials"));
         if (idt && idt.payload && idt.payload.authToken) {
@@ -56,10 +56,11 @@ try {
                 if (permLevel === 1) badge.textContent = "PLUS";
                 else if (permLevel === 2) badge.textContent = "ALT DEV";
                 else if (permLevel === 3) badge.textContent = "DEV";
-                else badge.textContent = "";
+                else badge.textContent = ""; 
             }
         } catch(e) {}
     }).catch(() => {});
+
 
     var logs = [];
     var deb = false;
