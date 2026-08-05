@@ -599,20 +599,22 @@ function getHomeStats() {
     }
   }
   var absPct = absLast > 0 ? Math.round(((absSem - absLast) / absLast) * 100) : (absSem > 0 ? 100 : 0);
-  var devSem = 0, devMaths = 0, devFr = 0, devAutres = 0;
+  var devSem = 0;
+  var subjectCounts = {};
   for (var d in cahier) {
     var dt = new Date(d);
     if (dt >= startOfWeek && dt <= endOfWeek) {
       var tasks = cahier[d];
       devSem += tasks.length;
       for (var j=0; j<tasks.length; j++) {
-        var mat = (tasks[j].matiere || "").toLowerCase();
-        if (mat.indexOf("math") !== -1) devMaths++;
-        else if (mat.indexOf("fran") !== -1 || mat.indexOf("francais") !== -1) devFr++;
-        else devAutres++;
+        var mat = tasks[j].matiere || 'Autre';
+        subjectCounts[mat] = (subjectCounts[mat] || 0) + 1;
       }
     }
   }
+  var topSubjects = Object.keys(subjectCounts).map(function(k) {
+    return { name: k, count: subjectCounts[k] };
+  }).sort(function(a, b) { return b.count - a.count; }).slice(0, 3);
   var notesSem = 0, nFaible = 0, nCorrect = 0, nExcell = 0;
   for (var i=0; i<notesOrig.length; i++) {
     var n = notesOrig[i];
@@ -630,189 +632,106 @@ function getHomeStats() {
       }
     }
   }
-  return { dem: dem, demPct: demPct, moyGen: moyGen, moyAnn: moyAnn, absSem: absSem, absPct: absPct, devSem: devSem, devMaths: devMaths, devFr: devFr, devAutres: devAutres, notesSem: notesSem, nFaible: nFaible, nCorrect: nCorrect, nExcell: nExcell };
+  return { dem: dem, demPct: demPct, moyGen: moyGen, moyAnn: moyAnn, absSem: absSem, absPct: absPct, devSem: devSem, topSubjects: topSubjects, notesSem: notesSem, nFaible: nFaible, nCorrect: nCorrect, nExcell: nExcell };
 }
+function generateDonut(total, segments) {
+  var C = 502.65;
+  var gap = 8;
+  var cumStart = 14;
+  var arcs = '';
+  if (total > 0) {
+    for (var i = 0; i < segments.length; i++) {
+      var seg = segments[i];
+      var frac = seg.value / total;
+      if (frac <= 0) continue;
+      var rawLen = frac * C;
+      var arcLen = Math.max(rawLen - gap, 2);
+      arcs += '<circle cx="100" cy="100" r="80" stroke="' + seg.color + '" stroke-dasharray="' + arcLen.toFixed(2) + ' ' + (C - arcLen).toFixed(2) + '" stroke-dashoffset="-' + cumStart.toFixed(2) + '"></circle>';
+      cumStart += rawLen;
+    }
+  } else {
+    arcs = '<circle cx="100" cy="100" r="80" stroke="#e5e5e5"></circle>';
+  }
+  return arcs;
+}
+
 function accueil() {
   var cont = document.getElementById('ed-content');
   if (!cont) return;
-  cont.innerHTML = '<div class="light-wrap"><div class="mui-app" id="homeApp"></div></div>';
-  var app = document.getElementById('homeApp');
-  app.innerHTML = `
-    <aside class="mui-side">
-      <div style="padding:18px 12px 10px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="mui-avatar" style="background:linear-gradient(135deg,#5b8cff,#1a56ff);width:38px;height:38px;font-size:13px;">${pren.charAt(0)}${nom.charAt(0)}</div>
-          <div style="min-width:0;">
-            <strong style="font-size:13px;display:block;color:#0f172a;">${pren} ${nom}</strong>
-            <span style="font-size:10.5px;color:#8a94a6;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${clasTxt}</span>
-          </div>
-        </div>
-      </div>
-      <nav class="mui-nav">
-        <button class="mui-item active" data-home="resume">${ic('inbox')}<span>Resume</span></button>
-        <button class="mui-item" data-home="notes">${ic('star')}<span>Notes recentes</span></button>
-        <button class="mui-item" data-home="devoirs">${ic('file')}<span>Devoirs</span></button>
-        <button class="mui-item" data-home="absences">${ic('spam')}<span>Absences</span></button>
-      </nav>
-    </aside>
-    <section class="mui-list">
-      <div class="mui-listhead">
-        <h2 style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:2px;" id="homeListTitle">Resume</h2>
-        <p style="font-size:10.5px;color:#8a94a6;" id="homeListSub">Vue d'ensemble</p>
-      </div>
-      <div class="mui-maillist" id="homeList"></div>
-    </section>
-    <main class="mui-reader">
-      <div class="mui-readerscroll" id="homeReader"></div>
-    </main>
-  `;
-  var currentHomeView = 'resume';
-  function renderHomeList() {
-    var list = document.getElementById('homeList');
-    var title = document.getElementById('homeListTitle');
-    var sub = document.getElementById('homeListSub');
-    list.innerHTML = '';
-    if (currentHomeView === 'resume') {
-      title.textContent = 'Resume';
-      sub.textContent = 'Activite recente';
-      if (fil && fil.length > 0) {
-        for (var i=0; i<Math.min(fil.length, 15); i++) {
-          var evt = fil[i];
-          var dateEvt = evt.date ? new Date(evt.date).toLocaleDateString('fr-FR') : '';
-          list.innerHTML += `
-            <article class="mui-mail">
-              <div class="mui-row1"><h4>${evt.titre || 'Evenement'}</h4><time>${dateEvt}</time></div>
-              <div class="mui-sub"><span class="mui-sender">${evt.soustitre || ''}</span></div>
-              <p class="mui-preview">${evt.contenu || ''}</p>
-            </article>`;
-        }
-      } else { list.innerHTML = '<div class="mui-empty">Aucune activite recente</div>'; }
-    } else if (currentHomeView === 'notes') {
-      title.textContent = 'Notes';
-      sub.textContent = 'Dernieres evaluations';
-      var recentNotes = notesOrig.slice(0, 20);
-      if (recentNotes.length === 0) { list.innerHTML = '<div class="mui-empty">Aucune note</div>'; return; }
-      for (var i=0; i<recentNotes.length; i++) {
-        var n = recentNotes[i];
-        var v = n.valeur, ns = n.noteSur || 20;
-        var dt = n.date || n.dateSaisie || '';
-        dt = dt ? dt.substring(5, 10).replace(/-/g, '/') : '';
-        list.innerHTML += `
-          <article class="mui-mail">
-            <div class="mui-row1"><h4>${n.libelleMatiere}</h4><time>${dt}</time></div>
-            <div class="mui-sub"><span class="mui-sender">${v}/${ns}</span></div>
-            <p class="mui-preview">${decodeTexte(n.commentaire || '')}</p>
-          </article>`;
-      }
-    } else if (currentHomeView === 'devoirs') {
-      title.textContent = 'Devoirs';
-      sub.textContent = 'A venir';
-      var dates = Object.keys(cahier).sort();
-      var count = 0;
-      for (var d=0; d<dates.length && count<20; d++) {
-        var tasks = cahier[dates[d]];
-        var dt = dates[d].substring(5, 10).replace(/-/g, '/');
-        for (var j=0; j<tasks.length && count<20; j++) {
-          var t = tasks[j];
-          list.innerHTML += `
-            <article class="mui-mail ${t.effectue ? 'read' : ''}">
-              <div class="mui-row1"><h4>${t.matiere}</h4><time>${dt}</time></div>
-              <div class="mui-sub"><span class="mui-sender">${t.effectue ? 'Fait' : 'A faire'}</span></div>
-              <p class="mui-preview">${decodeTexte(t.contenu || t.aFaire || '')}</p>
-            </article>`;
-          count++;
-        }
-      }
-      if (count === 0) list.innerHTML = '<div class="mui-empty">Aucun devoir</div>';
-    } else if (currentHomeView === 'absences') {
-      title.textContent = 'Absences';
-      sub.textContent = 'Retards et absences';
-      var absRet = vie.absencesRetards || [];
-      if (absRet.length === 0) { list.innerHTML = '<div class="mui-empty">Aucune absence</div>'; return; }
-      for (var i=0; i<Math.min(absRet.length, 20); i++) {
-        var a = absRet[i];
-        list.innerHTML += `
-          <article class="mui-mail">
-            <div class="mui-row1"><h4>${a.typeElement}</h4><time>${a.displayDate || ''}</time></div>
-            <div class="mui-sub"><span class="mui-sender">${a.justifie ? 'Justifie' : 'Non justifie'}</span></div>
-            <p class="mui-preview">${a.libelle || ''}</p>
-          </article>`;
-      }
+  var stats = getHomeStats();
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('fr-FR');
+  var timeStr = now.getHours().toString().padStart(2, '0') + 'h' + now.getMinutes().toString().padStart(2, '0');
+
+  var demClass = stats.demPct >= 0 ? 'dash-down' : 'dash-up';
+  var demArrow = stats.demPct >= 0 ? '↑' : '↓';
+  var absClass = stats.absPct >= 0 ? 'dash-down' : 'dash-up';
+  var absArrow = stats.absPct >= 0 ? '↑' : '↓';
+  var moyGenTxt = stats.moyGen !== null ? stats.moyGen.toFixed(2) : '—';
+  var moyAnnTxt = stats.moyAnn !== null ? stats.moyAnn.toFixed(2) : '—';
+
+  var devColors = ['#4ca070', '#eec643', '#3d6ede', '#e07b4c', '#a855f7', '#f43f5e'];
+  var devSegments = [];
+  var devLegend = '';
+  if (stats.topSubjects && stats.topSubjects.length > 0) {
+    for (var i = 0; i < stats.topSubjects.length; i++) {
+      var subj = stats.topSubjects[i];
+      var color = devColors[i % devColors.length];
+      devSegments.push({ value: subj.count, color: color });
+      devLegend += '<li><span class="dash-dot" style="background:' + color + '"></span>' + subj.name + '<b>' + subj.count + '</b></li>';
     }
+  } else {
+    devLegend += '<li><span class="dash-dot" style="background:#ccc"></span>none<b>0</b></li>';
   }
-  function renderHomeReader() {
-    var reader = document.getElementById('homeReader');
-    if (currentHomeView === 'resume') {
-      var stats = getHomeStats();
-      var now = new Date();
-      var dateStr = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
-      var html = `
-        <div class="mui-msghead">
-          <div class="mui-avatar" style="background:linear-gradient(135deg,#5b8cff,#1a56ff);">ED</div>
-          <div class="mui-who">
-            <strong>Tableau de bord</strong>
-            <span>${dateStr}</span>
-          </div>
-        </div>
-        <h3 class="mui-subject">Resume de la semaine</h3>
-        <div class="mui-body">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
-            <div style="background:#f8fafc;border:1px solid #edeff4;border-radius:12px;padding:16px;">
-              <div style="font-size:10.5px;color:#8a94a6;text-transform:uppercase;letter-spacing:.1em;font-weight:700;">Devoirs pour demain</div>
-              <div style="font-size:24px;font-weight:700;color:#0f172a;margin-top:4px;">${stats.dem}</div>
-              <div style="font-size:11px;color:${stats.demPct >= 0 ? '#f43f5e' : '#35c24e'};margin-top:4px;">${stats.demPct >= 0 ? '↑' : '↓'} ${Math.abs(stats.demPct)}% qu'aujourd'hui</div>
-            </div>
-            <div style="background:#f8fafc;border:1px solid #edeff4;border-radius:12px;padding:16px;">
-              <div style="font-size:10.5px;color:#8a94a6;text-transform:uppercase;letter-spacing:.1em;font-weight:700;">Retards/Absences</div>
-              <div style="font-size:24px;font-weight:700;color:#0f172a;margin-top:4px;">${stats.absSem}</div>
-              <div style="font-size:11px;color:${stats.absPct >= 0 ? '#f43f5e' : '#35c24e'};margin-top:4px;">${stats.absPct >= 0 ? '↑' : '↓'} ${Math.abs(stats.absPct)}% vs semaine derniere</div>
-            </div>
-            <div style="background:#f8fafc;border:1px solid #edeff4;border-radius:12px;padding:16px;">
-              <div style="font-size:10.5px;color:#8a94a6;text-transform:uppercase;letter-spacing:.1em;font-weight:700;">Moyenne generale</div>
-              <div style="font-size:24px;font-weight:700;color:#1a56ff;margin-top:4px;">${stats.moyGen !== null ? stats.moyGen.toFixed(2) : '—'}</div>
-              <div style="font-size:11px;color:#8a94a6;margin-top:4px;">Ce trimestre</div>
-            </div>
-            <div style="background:#f8fafc;border:1px solid #edeff4;border-radius:12px;padding:16px;">
-              <div style="font-size:10.5px;color:#8a94a6;text-transform:uppercase;letter-spacing:.1em;font-weight:700;">Moyenne annuelle</div>
-              <div style="font-size:24px;font-weight:700;color:#1a56ff;margin-top:4px;">${stats.moyAnn !== null ? stats.moyAnn.toFixed(2) : '—'}</div>
-              <div style="font-size:11px;color:#8a94a6;margin-top:4px;">Toute l'annee</div>
-            </div>
-          </div>
-          <div style="background:#fff;border:1px solid #edeff4;border-radius:12px;padding:16px;margin-bottom:16px;">
-            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:12px;">Devoirs cette semaine</div>
-            <div style="font-size:20px;font-weight:700;color:#1a56ff;margin-bottom:8px;">${stats.devSem} <span style="font-size:12px;color:#8a94a6;font-weight:500;">devoirs</span></div>
-            <div style="display:flex;gap:16px;font-size:11px;color:#3f4757;">
-              <span>maths <strong>${stats.devMaths}</strong></span>
-              <span>francais <strong>${stats.devFr}</strong></span>
-              <span>autres <strong>${stats.devAutres}</strong></span>
-            </div>
-          </div>
-          <div style="background:#fff;border:1px solid #edeff4;border-radius:12px;padding:16px;">
-            <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:12px;">Notes cette semaine</div>
-            <div style="font-size:20px;font-weight:700;color:#1a56ff;margin-bottom:8px;">${stats.notesSem} <span style="font-size:12px;color:#8a94a6;font-weight:500;">notes</span></div>
-            <div style="display:flex;gap:16px;font-size:11px;color:#3f4757;">
-              <span>correct (10-14) <strong>${stats.nCorrect}</strong></span>
-              <span>excellent (15-20) <strong>${stats.nExcell}</strong></span>
-              <span>faible (0-9) <strong>${stats.nFaible}</strong></span>
-            </div>
-          </div>
-        </div>`;
-      reader.innerHTML = html;
-    } else {
-      reader.innerHTML = '<div class="mui-empty">Selectionnez un element pour voir les details</div>';
-    }
-  }
-  app.querySelectorAll('[data-home]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      currentHomeView = this.getAttribute('data-home');
-      app.querySelectorAll('[data-home]').forEach(function(b) { b.classList.remove('active'); });
-      this.classList.add('active');
-      renderHomeList();
-      renderHomeReader();
-    });
-  });
-  renderHomeList();
-  renderHomeReader();
+
+  var devTotal = stats.devSem;
+  var devDonut = generateDonut(devTotal, devSegments);
+
+  var notesTotal = stats.notesSem;
+  var notesDonut = generateDonut(notesTotal, [
+    { value: stats.nCorrect, color: '#7c6ff0' },
+    { value: stats.nExcell, color: '#52c5b0' },
+    { value: stats.nFaible, color: '#e8944a' }
+  ]);
+
+  var html = '<div class="light-wrap" style="background:#f5f5f7;min-height:100vh;">';
+
+  html += '<section class="dash-stats">';
+  html += '<div class="dash-stat"><div class="dash-label">devoirs pour demain</div><div class="dash-num">' + stats.dem + '</div><div class="dash-delta"><span class="' + demClass + '">' + demArrow + ' ' + Math.abs(stats.demPct) + '%</span> qu\'aujourd\'hui</div></div>';
+  html += '<div class="dash-stat"><div class="dash-label">moyenne generale</div><div class="dash-num">' + moyGenTxt + '</div><div class="dash-delta">annuelle: ' + moyAnnTxt + '</div></div>';
+  html += '<div class="dash-stat"><div class="dash-label">retards/absence cette semaine</div><div class="dash-num">' + stats.absSem + '</div><div class="dash-delta"><span class="' + absClass + '">' + absArrow + ' ' + Math.abs(stats.absPct) + '%</span> par rapport a la semaine derniere</div></div>';
+  html += '<div class="dash-stat"><div class="dash-label">date</div><div class="dash-num" style="font-size:24px;line-height:1.2;">' + dateStr + '<br>' + timeStr + '</div></div>';
+  html += '</section>';
+
+  html += '<section class="dash-row">';
+
+  html += '<div class="dash-card"><div class="dash-card-head"><h2>devoirs</h2><span class="dash-text">semaine</span></div>';
+  html += '<div class="dash-donut-wrap"><svg width="210" height="210" viewBox="0 0 200 200">';
+  html += '<g transform="rotate(-90 100 100)" fill="none" stroke-width="22" stroke-linecap="round">' + devDonut + '</g>';
+  html += '<circle cx="100" cy="100" r="62" fill="#fff"></circle><circle cx="100" cy="100" r="50" fill="#f8f8f8"></circle>';
+  html += '<text x="100" y="96" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a1a">' + devTotal + '</text>';
+  html += '<text x="100" y="114" text-anchor="middle" font-size="11" fill="#888">devoirs</text>';
+  html += '</svg></div>';
+  html += '<ul class="dash-legend">';
+  html += devLegend;
+  html += '</ul></div>';
+
+  html += '<div class="dash-card"><div class="dash-card-head"><h2>notes</h2><span class="dash-text">semaine</span></div>';
+  html += '<div class="dash-donut-wrap"><svg width="210" height="210" viewBox="0 0 200 200">';
+  html += '<g transform="rotate(-90 100 100)" fill="none" stroke-width="22" stroke-linecap="round">' + notesDonut + '</g>';
+  html += '<circle cx="100" cy="100" r="62" fill="#fff"></circle><circle cx="100" cy="100" r="50" fill="#f8f8f8"></circle>';
+  html += '<text x="100" y="96" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a1a">' + notesTotal + '</text>';
+  html += '<text x="100" y="114" text-anchor="middle" font-size="11" fill="#888">notes</text>';
+  html += '</svg></div>';
+  html += '<ul class="dash-legend">';
+  html += '<li><span class="dash-dot" style="background:#7c6ff0"></span>correct (10-14)<b>' + stats.nCorrect + '</b></li>';
+  html += '<li><span class="dash-dot" style="background:#52c5b0"></span>excellent (15-20)<b>' + stats.nExcell + '</b></li>';
+  html += '<li><span class="dash-dot" style="background:#e8944a"></span>faible (0-9)<b>' + stats.nFaible + '</b></li>';
+  html += '</ul></div>';
+
+  html += '</section></div>';
+
+  cont.innerHTML = html;
 }
 function sauvegarderScroll() {
 var cont = document.getElementById('ed-content');
@@ -2170,7 +2089,6 @@ var iconeEdt = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcm
 var iconeCarnet2 = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMTUgMTNhMyAzIDAgMSAwLTYgMCIvPjxwYXRoIGQ9Ik00IDQuNXYtMTVBMi41IDIuNSAwIDAgMSA2LjUgMkgxOWExIDEgMCAwIDEgMSAxdjE4YTEgMSAwIDAgMS0xIDFINi41YTEgMSAwIDAgMSAwLTVIMjAiLz48Y2lyY2xlIGN4PSIxMiIgY3k9IjgiIHI9IjIiLz48L3N2Zz4=';
 var iconeVie = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMiA2aDQiLz48cGF0aCBkPSJNMiAxMGg0Ii8+PHBhdGggZD0iTTIgMTRoNCIvPjxwYXRoIGQ9Ik0yIDE4aDQiLz48cmVjdCB3aWR0aD0iMTYiIGhlaWdodD0iMjAiIHg9IjQiIHk9IjIiIHJ4PSIyIi8+PHBhdGggZD0iTTE1IDJ2MjAiLz48cGF0aCBkPSJNMTUgN2g1Ii8+PHBhdGggZD0iTTE1IDEyaDUiLz48cGF0aCBkPSJNMTUgMTdoNSIvPjwvc3ZnPg==';
 var iconeMessages = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJtMjIgNy04Ljk5MSA1LjcyN2EyIDIgMCAwIDEtMi4wMDkgMEwyIDciLz48cmVjdCB4PSIyIiB5PSI0IiB3aWR0aD0iMjAiIGhlaWdodD0iMTYiIHJ4PSIyIi8+PC9zdmc+';
-var iconeParam = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI4IDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbG
 var iconeParam = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI4IDI4IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNOS42NzEgNC4xMzZhMi4zNCAyLjM0IDAgMCAxIDQuNjU5IDAgMi4zNCAyLjM0IDAgMCAwIDMuMzE5IDEuOTE1IDIuMzQgMi4zNCAwIDAgMSAyLjMzIDQuMDMzIDIuMzQgMi4zNCAwIDAgMCAwIDMuODMxIDIuMzQgMi4zNCAwIDAgMS0yLjM0IDQuMDMzdi0yLjM0IDIuMzQgMCAwIDAtMy4zMTkgMS45MTUgMi4zNCAyLjM0IDAgMCAxLTQuNjU5IDAgMi4zNCAyLjM0IDAgMCAwLTMuMzItMS45MTUgMi4zNCAyLjM0IDAgMCAxLTIuMzMtNC4wMzMgMi4zNCAyLjM0IDAgMCAwIDAtMy44MzFBMi4zNCAyLjM0IDAgMCAxIDYuMzUgNi4wNTFhMi4zNCAyLjM0IDAgMCAwIDMuMzE5LTEuOTE1Ii8+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMyIvPjwvc3ZnPg==';
 var iconeApps = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSIzIiB5PSIzIiB3aWR0aD0iNyIgaGVpZ2h0PSI3IiByeD0iMSIvPjxyZWN0IHg9IjE0IiB5PSIzIiB3aWR0aD0iNyIgaGVpZ2h0PSI3IiByeD0iMSIvPjxyZWN0IHg9IjMiIHk9IjE0IiB3aWR0aD0iNyIgaGVpZ2h0PSI3IiByeD0iMSIvPjxyZWN0IHg9IjE0IiB5PSIxNCIgd2lkdGg9IjciIGhlaWdodD0iNyIgcng9IjEiLz48L3N2Zz4=';
 widget.innerHTML = `
@@ -2373,6 +2291,29 @@ body { font-family: 'Space Grotesk', system-ui, sans-serif; }
 .btn-ed.danger { color:#e9ecf2; border-color:rgba(255,255,255,0.16); }
 .message-item { background:#1b1e25; border-radius:14px; padding:14px; margin-bottom:10px; cursor:pointer; border:1px solid rgba(255,255,255,0.08); transition:all 0.25s; }
 .message-item:hover { border-color:rgba(255,255,255,0.16); background:#20242c; }
+.dash-stats{background:#fff;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:28px 16px;display:grid;grid-template-columns:repeat(4,1fr);margin-bottom:24px;border:1px solid rgba(0,0,0,0.06);}
+.dash-stat{padding:0 20px;}
+.dash-stat+.dash-stat{border-left:1px solid rgba(0,0,0,0.06);}
+.dash-stat .dash-label{font-size:12px;font-weight:500;color:#666;}
+.dash-stat .dash-num{font-size:32px;font-weight:700;margin:10px 0 8px;color:#1a1a1a;}
+.dash-stat .dash-delta{font-size:12px;color:#888;}
+.dash-up{color:#35c24e;font-weight:600;}
+.dash-down{color:#f43f5e;font-weight:600;}
+.dash-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.dash-card{background:#fff;border-radius:16px;padding:24px;border:1px solid rgba(0,0,0,0.06);box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.dash-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.dash-card-head h2{font-size:17px;font-weight:600;color:#1a1a1a;}
+.dash-card-head .dash-text{color:#999;font-size:12px;}
+.dash-donut-wrap{position:relative;display:flex;justify-content:center;margin:20px 0 24px;}
+.dash-legend{list-style:none;padding:0;}
+.dash-legend li{display:flex;align-items:center;font-size:13px;color:#555;margin:10px 0;}
+.dash-legend .dash-dot{width:10px;height:10px;border-radius:50%;margin-right:10px;display:inline-block;flex-shrink:0;}
+.dash-legend b{margin-left:auto;color:#1a1a1a;font-size:14px;font-weight:600;}
+@media(max-width:768px){
+  .dash-stats{grid-template-columns:1fr 1fr;row-gap:20px;}
+  .dash-row{grid-template-columns:1fr;}
+}
+
 @media(max-width:768px){
 .m-container { margin-left:0 !important; padding:70px 14px 14px; }
 #ed-menu-fab { display:flex; }
