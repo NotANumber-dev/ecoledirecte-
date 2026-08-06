@@ -1,7 +1,7 @@
 (async () => {
 try {
 const ALERT_VERSION = "1";
-const ALERT_MESSAGE = "met le raccourci a jour: https://www.icloud.com/shortcuts/0a587f62ec164d2a8933cdfed64ac845";
+const ALERT_MESSAGE = "met le raccourci a jour: https://www.icloud.com/shortcuts/13f1b93cdd114e37ac7a76c1c9aa85b6";
 if (localStorage.getItem('ed_alert_version') !== ALERT_VERSION) {
 alert(ALERT_MESSAGE);
 localStorage.setItem('ed_alert_version', ALERT_VERSION);
@@ -204,7 +204,7 @@ localStorage.setItem('ed_roundness', rond);
 var style = document.getElementById('ed-rond-style');
 if (!style) { style = document.createElement('style'); style.id = 'ed-rond-style'; document.head.appendChild(style); }
 var px = rond + 'px';
-style.textContent = `#ed-widget .subject-card, #ed-widget .stat-card, #ed-widget .home-card, #ed-widget .annual-card, #ed-widget .task-card, #ed-widget .home-hero, #ed-widget .hero-card, #ed-widget .carnet2-card, #ed-widget .message-item, #ed-widget .tab-bar, #ed-widget .trimester-selector, #ed-widget .tab-btn.active, #ed-widget .trimester-option.active, #ed-widget input, #ed-widget select, #ed-widget button, #ed-widget .profile-dropdown, #ed-widget .notes-table-ed, #ed-widget #ed-side-nav, #refreshFab, #ed-menu-fab, #ed-widget .mui-app, #ed-widget .mui-side, #ed-widget .mui-list, #ed-widget .mui-reader, #ed-widget .mui-mail { border-radius: ${px} !important; }`;
+style.textContent = `#ed-widget .subject-card, #ed-widget .stat-card, #ed-widget .home-card, #ed-widget .annual-card, #ed-widget .task-card, #ed-widget .home-hero, #ed-widget .hero-card, #ed-widget .carnet2-card, #ed-widget .message-item, #ed-widget .tab-bar, #ed-widget .trimester-selector, #ed-widget .tab-btn.active, #ed-widget .trimester-option.active, #ed-widget input, #ed-widget select, #ed-widget button, #ed-widget .profile-dropdown, #ed-widget .notes-table-ed, #ed-widget #ed-side-nav, #refreshFab, #ed-menu-fab, #ed-widget .mui-app, #ed-widget .mui-side, #ed-widget .mui-list, #ed-widget .mui-reader, #ed-widget .mui-mail, #ed-widget .set-card, #ed-widget .cdt-card, #ed-widget .cdt-sched-item, #ed-widget .cdt-inst, #ed-widget .cdt-mark-btn, #ed-widget .cdt-btn { border-radius: ${px} !important; }`;
 }
 function ouvrirSideNav() {
 var nav = document.getElementById('ed-side-nav');
@@ -556,182 +556,170 @@ corps.innerHTML = '<div style="color:#9aa3b1;text-align:center;"><div style="fon
 }
 window.voirPieceJointe = voirPieceJointe;
 function getHomeStats() {
-  var now = new Date();
-  var startOfWeek = new Date(now);
-  var day = startOfWeek.getDay();
-  var diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
-  startOfWeek.setDate(diff);
-  startOfWeek.setHours(0,0,0,0);
-  var endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23,59,59,999);
-  var startOfLastWeek = new Date(startOfWeek);
-  startOfLastWeek.setDate(startOfWeek.getDate() - 7);
-  var endOfLastWeek = new Date(startOfWeek);
-  endOfLastWeek.setDate(startOfWeek.getDate() - 1);
-  endOfLastWeek.setHours(23,59,59,999);
-  var tomorrow = new Date(now);
-  tomorrow.setDate(now.getDate() + 1);
-  tomorrow.setHours(0,0,0,0);
-  var endOfTomorrow = new Date(tomorrow);
-  endOfTomorrow.setHours(23,59,59,999);
-  var today = new Date(now);
-  today.setHours(0,0,0,0);
-  var endOfToday = new Date(today);
-  endOfToday.setHours(23,59,59,999);
-  var dem = 0, auj = 0;
-  for (var d in cahier) {
-    var dt = new Date(d);
-    if (dt >= tomorrow && dt <= endOfTomorrow) dem += cahier[d].length;
-    if (dt >= today && dt <= endOfToday) auj += cahier[d].length;
-  }
-  var demPct = auj > 0 ? Math.round(((dem - auj) / auj) * 100) : (dem > 0 ? 100 : 0);
-  var moyGen = moyTriAvecSimu(triActuel);
-  var moyAnn = moyAnnuelleAvecSimu();
-  var absSem = 0, absLast = 0;
-  var absRet = vie.absencesRetards || [];
-  for (var i=0; i<absRet.length; i++) {
-    var dtStr = absRet[i].date || absRet[i].displayDate;
-    if (dtStr) {
-      var dt = new Date(dtStr);
-      if (dt >= startOfWeek && dt <= endOfWeek) absSem++;
-      if (dt >= startOfLastWeek && dt <= endOfLastWeek) absLast++;
-    }
-  }
-  var absPct = absLast > 0 ? Math.round(((absSem - absLast) / absLast) * 100) : (absSem > 0 ? 100 : 0);
-  var devSem = 0;
-  var subjectCounts = {};
-  for (var d in cahier) {
-    var dt = new Date(d);
-    if (dt >= startOfWeek && dt <= endOfWeek) {
-      var tasks = cahier[d];
-      devSem += tasks.length;
-      for (var j=0; j<tasks.length; j++) {
-        var mat = tasks[j].matiere || 'Autre';
-        subjectCounts[mat] = (subjectCounts[mat] || 0) + 1;
-      }
-    }
-  }
-  var topSubjects = Object.keys(subjectCounts).map(function(k) {
-    return { name: k, count: subjectCounts[k] };
-  }).sort(function(a, b) { return b.count - a.count; }).slice(0, 3);
-  var notesSem = 0, nFaible = 0, nCorrect = 0, nExcell = 0;
-  for (var i=0; i<notesOrig.length; i++) {
-    var n = notesOrig[i];
-    var dtStr = n.date || n.dateSaisie;
-    if (dtStr) {
-      var dt = new Date(dtStr);
-      if (dt >= startOfWeek && dt <= endOfWeek) {
-        notesSem++;
-        var v = parseFloat((n.valeur || "0").replace(',', '.'));
-        var ns = parseFloat(n.noteSur) || 20;
-        var val20 = (v / ns) * 20;
-        if (val20 < 10) nFaible++;
-        else if (val20 < 15) nCorrect++;
-        else nExcell++;
-      }
-    }
-  }
-  return { dem: dem, demPct: demPct, moyGen: moyGen, moyAnn: moyAnn, absSem: absSem, absPct: absPct, devSem: devSem, topSubjects: topSubjects, notesSem: notesSem, nFaible: nFaible, nCorrect: nCorrect, nExcell: nExcell };
+var now = new Date();
+var startOfWeek = new Date(now);
+var day = startOfWeek.getDay();
+var diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+startOfWeek.setDate(diff);
+startOfWeek.setHours(0,0,0,0);
+var endOfWeek = new Date(startOfWeek);
+endOfWeek.setDate(startOfWeek.getDate() + 6);
+endOfWeek.setHours(23,59,59,999);
+var startOfLastWeek = new Date(startOfWeek);
+startOfLastWeek.setDate(startOfWeek.getDate() - 7);
+var endOfLastWeek = new Date(startOfWeek);
+endOfLastWeek.setDate(startOfWeek.getDate() - 1);
+endOfLastWeek.setHours(23,59,59,999);
+var tomorrow = new Date(now);
+tomorrow.setDate(now.getDate() + 1);
+tomorrow.setHours(0,0,0,0);
+var endOfTomorrow = new Date(tomorrow);
+endOfTomorrow.setHours(23,59,59,999);
+var today = new Date(now);
+today.setHours(0,0,0,0);
+var endOfToday = new Date(today);
+endOfToday.setHours(23,59,59,999);
+var dem = 0, auj = 0;
+for (var d in cahier) {
+var dt = new Date(d);
+if (dt >= tomorrow && dt <= endOfTomorrow) dem += cahier[d].length;
+if (dt >= today && dt <= endOfToday) auj += cahier[d].length;
+}
+var demPct = auj > 0 ? Math.round(((dem - auj) / auj) * 100) : (dem > 0 ? 100 : 0);
+var moyGen = moyTriAvecSimu(triActuel);
+var moyAnn = moyAnnuelleAvecSimu();
+var absSem = 0, absLast = 0;
+var absRet = vie.absencesRetards || [];
+for (var i=0; i<absRet.length; i++) {
+var dtStr = absRet[i].date || absRet[i].displayDate;
+if (dtStr) {
+var dt = new Date(dtStr);
+if (dt >= startOfWeek && dt <= endOfWeek) absSem++;
+if (dt >= startOfLastWeek && dt <= endOfLastWeek) absLast++;
+}
+}
+var absPct = absLast > 0 ? Math.round(((absSem - absLast) / absLast) * 100) : (absSem > 0 ? 100 : 0);
+var devSem = 0;
+var subjectCounts = {};
+for (var d in cahier) {
+var dt = new Date(d);
+if (dt >= startOfWeek && dt <= endOfWeek) {
+var tasks = cahier[d];
+devSem += tasks.length;
+for (var j=0; j<tasks.length; j++) {
+var mat = tasks[j].matiere || 'Autre';
+subjectCounts[mat] = (subjectCounts[mat] || 0) + 1;
+}
+}
+}
+var topSubjects = Object.keys(subjectCounts).map(function(k) {
+return { name: k, count: subjectCounts[k] };
+}).sort(function(a, b) { return b.count - a.count; }).slice(0, 3);
+var notesSem = 0, nFaible = 0, nCorrect = 0, nExcell = 0;
+for (var i=0; i<notesOrig.length; i++) {
+var n = notesOrig[i];
+var dtStr = n.date || n.dateSaisie;
+if (dtStr) {
+var dt = new Date(dtStr);
+if (dt >= startOfWeek && dt <= endOfWeek) {
+notesSem++;
+var v = parseFloat((n.valeur || "0").replace(',', '.'));
+var ns = parseFloat(n.noteSur) || 20;
+var val20 = (v / ns) * 20;
+if (val20 < 10) nFaible++;
+else if (val20 < 15) nCorrect++;
+else nExcell++;
+}
+}
+}
+return { dem: dem, demPct: demPct, moyGen: moyGen, moyAnn: moyAnn, absSem: absSem, absPct: absPct, devSem: devSem, topSubjects: topSubjects, notesSem: notesSem, nFaible: nFaible, nCorrect: nCorrect, nExcell: nExcell };
 }
 function generateDonut(total, segments) {
-  var C = 502.65;
-  var gap = 8;
-  var cumStart = 14;
-  var arcs = '';
-  if (total > 0) {
-    for (var i = 0; i < segments.length; i++) {
-      var seg = segments[i];
-      var frac = seg.value / total;
-      if (frac <= 0) continue;
-      var rawLen = frac * C;
-      var arcLen = Math.max(rawLen - gap, 2);
-      arcs += '<circle cx="100" cy="100" r="80" stroke="' + seg.color + '" stroke-dasharray="' + arcLen.toFixed(2) + ' ' + (C - arcLen).toFixed(2) + '" stroke-dashoffset="-' + cumStart.toFixed(2) + '"></circle>';
-      cumStart += rawLen;
-    }
-  } else {
-    arcs = '<circle cx="100" cy="100" r="80" stroke="#e5e5e5"></circle>';
-  }
-  return arcs;
+var C = 502.65;
+var gap = 8;
+var cumStart = 14;
+var arcs = '';
+if (total > 0) {
+for (var i = 0; i < segments.length; i++) {
+var seg = segments[i];
+var frac = seg.value / total;
+if (frac <= 0) continue;
+var rawLen = frac * C;
+var arcLen = Math.max(rawLen - gap, 2);
+arcs += '<circle cx="100" cy="100" r="80" stroke="' + seg.color + '" stroke-dasharray="' + arcLen.toFixed(2) + ' ' + (C - arcLen).toFixed(2) + '" stroke-dashoffset="-' + cumStart.toFixed(2) + '"></circle>';
+cumStart += rawLen;
 }
-
+} else {
+arcs = '<circle cx="100" cy="100" r="80" stroke="#e5e5e5"></circle>';
+}
+return arcs;
+}
 function accueil() {
-  var cont = document.getElementById('ed-content');
-  if (!cont) return;
-  var stats = getHomeStats();
-  var now = new Date();
-  var dateStr = now.toLocaleDateString('fr-FR');
-  var timeStr = now.getHours().toString().padStart(2, '0') + 'h' + now.getMinutes().toString().padStart(2, '0');
-
-  var demClass = stats.demPct >= 0 ? 'dash-down' : 'dash-up';
-  var demArrow = stats.demPct >= 0 ? '↑' : '↓';
-  var absClass = stats.absPct >= 0 ? 'dash-down' : 'dash-up';
-  var absArrow = stats.absPct >= 0 ? '↑' : '↓';
-  var moyGenTxt = stats.moyGen !== null ? stats.moyGen.toFixed(2) : '—';
-  var moyAnnTxt = stats.moyAnn !== null ? stats.moyAnn.toFixed(2) : '—';
-
-  var devColors = ['#4ca070', '#eec643', '#3d6ede', '#e07b4c', '#a855f7', '#f43f5e'];
-  var devSegments = [];
-  var devLegend = '';
-  if (stats.topSubjects && stats.topSubjects.length > 0) {
-    for (var i = 0; i < stats.topSubjects.length; i++) {
-      var subj = stats.topSubjects[i];
-      var color = devColors[i % devColors.length];
-      devSegments.push({ value: subj.count, color: color });
-      devLegend += '<li><span class="dash-dot" style="background:' + color + '"></span>' + subj.name + '<b>' + subj.count + '</b></li>';
-    }
-  } else {
-    devLegend += '<li><span class="dash-dot" style="background:#ccc"></span>none<b>0</b></li>';
-  }
-
-  var devTotal = stats.devSem;
-  var devDonut = generateDonut(devTotal, devSegments);
-
-  var notesTotal = stats.notesSem;
-  var notesDonut = generateDonut(notesTotal, [
-    { value: stats.nCorrect, color: '#7c6ff0' },
-    { value: stats.nExcell, color: '#52c5b0' },
-    { value: stats.nFaible, color: '#e8944a' }
-  ]);
-
-  var html = '<div class="light-wrap" style="background:#f5f5f7;min-height:100vh;">';
-
-  html += '<section class="dash-stats">';
-  html += '<div class="dash-stat"><div class="dash-label">devoirs pour demain</div><div class="dash-num">' + stats.dem + '</div><div class="dash-delta"><span class="' + demClass + '">' + demArrow + ' ' + Math.abs(stats.demPct) + '%</span> qu\'aujourd\'hui</div></div>';
-  html += '<div class="dash-stat"><div class="dash-label">moyenne generale</div><div class="dash-num">' + moyGenTxt + '</div><div class="dash-delta">annuelle: ' + moyAnnTxt + '</div></div>';
-  html += '<div class="dash-stat"><div class="dash-label">retards/absence cette semaine</div><div class="dash-num">' + stats.absSem + '</div><div class="dash-delta"><span class="' + absClass + '">' + absArrow + ' ' + Math.abs(stats.absPct) + '%</span> par rapport a la semaine derniere</div></div>';
-  html += '<div class="dash-stat"><div class="dash-label">date</div><div class="dash-num" style="font-size:24px;line-height:1.2;">' + dateStr + '<br>' + timeStr + '</div></div>';
-  html += '</section>';
-
-  html += '<section class="dash-row">';
-
-  html += '<div class="dash-card"><div class="dash-card-head"><h2>devoirs</h2><span class="dash-text">semaine</span></div>';
-  html += '<div class="dash-donut-wrap"><svg width="210" height="210" viewBox="0 0 200 200">';
-  html += '<g transform="rotate(-90 100 100)" fill="none" stroke-width="22" stroke-linecap="round">' + devDonut + '</g>';
-  html += '<circle cx="100" cy="100" r="62" fill="#fff"></circle><circle cx="100" cy="100" r="50" fill="#f8f8f8"></circle>';
-  html += '<text x="100" y="96" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a1a">' + devTotal + '</text>';
-  html += '<text x="100" y="114" text-anchor="middle" font-size="11" fill="#888">devoirs</text>';
-  html += '</svg></div>';
-  html += '<ul class="dash-legend">';
-  html += devLegend;
-  html += '</ul></div>';
-
-  html += '<div class="dash-card"><div class="dash-card-head"><h2>notes</h2><span class="dash-text">semaine</span></div>';
-  html += '<div class="dash-donut-wrap"><svg width="210" height="210" viewBox="0 0 200 200">';
-  html += '<g transform="rotate(-90 100 100)" fill="none" stroke-width="22" stroke-linecap="round">' + notesDonut + '</g>';
-  html += '<circle cx="100" cy="100" r="62" fill="#fff"></circle><circle cx="100" cy="100" r="50" fill="#f8f8f8"></circle>';
-  html += '<text x="100" y="96" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a1a">' + notesTotal + '</text>';
-  html += '<text x="100" y="114" text-anchor="middle" font-size="11" fill="#888">notes</text>';
-  html += '</svg></div>';
-  html += '<ul class="dash-legend">';
-  html += '<li><span class="dash-dot" style="background:#7c6ff0"></span>correct (10-14)<b>' + stats.nCorrect + '</b></li>';
-  html += '<li><span class="dash-dot" style="background:#52c5b0"></span>excellent (15-20)<b>' + stats.nExcell + '</b></li>';
-  html += '<li><span class="dash-dot" style="background:#e8944a"></span>faible (0-9)<b>' + stats.nFaible + '</b></li>';
-  html += '</ul></div>';
-
-  html += '</section></div>';
-
-  cont.innerHTML = html;
+var cont = document.getElementById('ed-content');
+if (!cont) return;
+var stats = getHomeStats();
+var now = new Date();
+var dateStr = now.toLocaleDateString('fr-FR');
+var timeStr = now.getHours().toString().padStart(2, '0') + 'h' + now.getMinutes().toString().padStart(2, '0');
+var demClass = stats.demPct >= 0 ? 'dash-down' : 'dash-up';
+var demArrow = stats.demPct >= 0 ? '↑' : '↓';
+var absClass = stats.absPct >= 0 ? 'dash-down' : 'dash-up';
+var absArrow = stats.absPct >= 0 ? '↑' : '↓';
+var moyGenTxt = stats.moyGen !== null ? stats.moyGen.toFixed(2) : '—';
+var moyAnnTxt = stats.moyAnn !== null ? stats.moyAnn.toFixed(2) : '—';
+var devColors = ['#4ca070', '#eec643', '#3d6ede', '#e07b4c', '#a855f7', '#f43f5e'];
+var devSegments = [];
+var devLegend = '';
+if (stats.topSubjects && stats.topSubjects.length > 0) {
+for (var i = 0; i < stats.topSubjects.length; i++) {
+var subj = stats.topSubjects[i];
+var color = devColors[i % devColors.length];
+devSegments.push({ value: subj.count, color: color });
+devLegend += '<li><span class="dash-dot" style="background:' + color + '"></span>' + subj.name + '<b>' + subj.count + '</b></li>';
+}
+} else {
+devLegend += '<li><span class="dash-dot" style="background:#ccc"></span>none<b>0</b></li>';
+}
+var devTotal = stats.devSem;
+var devDonut = generateDonut(devTotal, devSegments);
+var notesTotal = stats.notesSem;
+var notesDonut = generateDonut(notesTotal, [
+{ value: stats.nCorrect, color: '#7c6ff0' },
+{ value: stats.nExcell, color: '#52c5b0' },
+{ value: stats.nFaible, color: '#e8944a' }
+]);
+var html = '<div class="light-wrap" style="background:#f5f5f7;min-height:100vh;">';
+html += '<section class="dash-stats">';
+html += '<div class="dash-stat"><div class="dash-label">devoirs pour demain</div><div class="dash-num">' + stats.dem + '</div><div class="dash-delta"><span class="' + demClass + '">' + demArrow + ' ' + Math.abs(stats.demPct) + '%</span> qu\'aujourd\'hui</div></div>';
+html += '<div class="dash-stat"><div class="dash-label">moyenne generale</div><div class="dash-num">' + moyGenTxt + '</div><div class="dash-delta">annuelle: ' + moyAnnTxt + '</div></div>';
+html += '<div class="dash-stat"><div class="dash-label">retards/absence cette semaine</div><div class="dash-num">' + stats.absSem + '</div><div class="dash-delta"><span class="' + absClass + '">' + absArrow + ' ' + Math.abs(stats.absPct) + '%</span> par rapport a la semaine derniere</div></div>';
+html += '<div class="dash-stat"><div class="dash-label">date</div><div class="dash-num" style="font-size:24px;line-height:1.2;">' + dateStr + '<br>' + timeStr + '</div></div>';
+html += '</section>';
+html += '<section class="dash-row">';
+html += '<div class="dash-card"><div class="dash-card-head"><h2>devoirs</h2><span class="dash-text">semaine</span></div>';
+html += '<div class="dash-donut-wrap"><svg width="210" height="210" viewBox="0 0 200 200">';
+html += '<g transform="rotate(-90 100 100)" fill="none" stroke-width="22" stroke-linecap="round">' + devDonut + '</g>';
+html += '<circle cx="100" cy="100" r="62" fill="#fff"></circle><circle cx="100" cy="100" r="50" fill="#f8f8f8"></circle>';
+html += '<text x="100" y="96" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a1a">' + devTotal + '</text>';
+html += '<text x="100" y="114" text-anchor="middle" font-size="11" fill="#888">devoirs</text>';
+html += '</svg></div>';
+html += '<ul class="dash-legend">';
+html += devLegend;
+html += '</ul></div>';
+html += '<div class="dash-card"><div class="dash-card-head"><h2>notes</h2><span class="dash-text">semaine</span></div>';
+html += '<div class="dash-donut-wrap"><svg width="210" height="210" viewBox="0 0 200 200">';
+html += '<g transform="rotate(-90 100 100)" fill="none" stroke-width="22" stroke-linecap="round">' + notesDonut + '</g>';
+html += '<circle cx="100" cy="100" r="62" fill="#fff"></circle><circle cx="100" cy="100" r="50" fill="#f8f8f8"></circle>';
+html += '<text x="100" y="96" text-anchor="middle" font-size="22" font-weight="700" fill="#1a1a1a">' + notesTotal + '</text>';
+html += '<text x="100" y="114" text-anchor="middle" font-size="11" fill="#888">notes</text>';
+html += '</svg></div>';
+html += '<ul class="dash-legend">';
+html += '<li><span class="dash-dot" style="background:#7c6ff0"></span>correct (10-14)<b>' + stats.nCorrect + '</b></li>';
+html += '<li><span class="dash-dot" style="background:#52c5b0"></span>excellent (15-20)<b>' + stats.nExcell + '</b></li>';
+html += '<li><span class="dash-dot" style="background:#e8944a"></span>faible (0-9)<b>' + stats.nFaible + '</b></li>';
+html += '</ul></div>';
+html += '</section></div>';
+cont.innerHTML = html;
 }
 function sauvegarderScroll() {
 var cont = document.getElementById('ed-content');
@@ -1022,46 +1010,347 @@ voirNotesMatiere(matiere);
 function devoirs() {
 var cont = document.getElementById('ed-content');
 if (!cont) return;
-cont.innerHTML = '';
-var dates = Object.keys(cahier).sort();
-var aTaches = false;
-var html = '<div>';
-for (var d = 0; d < dates.length; d++) {
-var dateKey = dates[d], taches = cahier[dateKey], formate = formaterDate(dateKey);
-var nonFait = [], fait = [];
-for (var i = 0; i < taches.length; i++) { if (taches[i].effectue === false) nonFait.push(taches[i]); else fait.push(taches[i]); }
-var toutes = nonFait.concat(fait);
-if (toutes.length > 0) {
-aTaches = true;
-html += '<div style="margin-bottom:16px;">';
-html += '<div class="date-pill" data-date="' + dateKey + '">';
-html += '<div><span style="font-weight:700;color:#e8f1ff;">' + formate.jour + '</span><span style="color:#9aa3b1;margin-left:10px;font-size:13px;">' + formate.date + '</span></div>';
-html += '<div style="background:rgba(232,241,255,0.1);padding:3px 8px;border-radius:999px;font-size:11px;color:#e8f1ff;border:1px solid rgba(255,255,255,0.08);">' + toutes.length + ' devoir(s)</div></div>';
-html += '<div style="margin-left:10px;">';
-for (var i = 0; i < toutes.length; i++) {
-var tache = toutes[i], fait = (tache.effectue === true), type = tache.interrogation ? "Interrogation" : "Devoir";
-var brut = typeof tache.contenu === 'string' ? tache.contenu : typeof tache.aFaire === 'string' ? tache.aFaire : '';
-var tacheContenu = decodeTexte(brut);
-var bordure = fait ? '4px solid #e8f1ff' : (tache.isAnnule ? 'none' : '4px solid #9aa3b1');
-var matiereNom = tache.matiere || '';
-html += '<div class="task-card" data-date="' + dateKey + '" data-matiere="' + matiereNom.replace(/"/g, '&quot;') + '" style="border-left:' + bordure + ';">';
-html += '<div class="task-meta"><div><strong style="color:#e9ecf2;">' + tache.matiere + '</strong> <span class="task-badge">' + type + '</span></div>';
-html += '<div><span style="color:' + (fait ? '#e8f1ff' : '#9aa3b1') + ';font-size:12px;font-weight:500;">' + (fait ? 'FAIT' : 'A FAIRE') + '</span></div></div>';
-if (tacheContenu) html += '<div class="task-content">' + tacheContenu + '</div>';
-html += '</div>';
+
+var cdtCurrentMonth = new Date();
+cdtCurrentMonth.setDate(1);
+var cdtSelectedDate = null;
+
+function pad(n) { return n < 10 ? '0' + n : '' + n; }
+function dateKey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function parseDateKey(k) { var p = k.split('-'); return new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2])); }
+function isSameDay(a, b) { return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate(); }
+function moisFr(m) {
+var noms = ['Janvier','Fevrier','Mars','Avril','Mai','Juin','Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+return noms[m];
 }
-html += '</div></div>';
+
+function getWeekStats() {
+var now = new Date();
+var start = new Date(now);
+var day = start.getDay();
+var diff = start.getDate() - day + (day === 0 ? -6 : 1);
+start.setDate(diff);
+start.setHours(0, 0, 0, 0);
+var end = new Date(start);
+end.setDate(start.getDate() + 6);
+end.setHours(23, 59, 59, 999);
+
+var total = 0, fait = 0, parJour = {};
+for (var i = 0; i < 7; i++) {
+var d = new Date(start);
+d.setDate(start.getDate() + i);
+parJour[dateKey(d)] = { total: 0, fait: 0 };
+}
+for (var k in cahier) {
+var d = parseDateKey(k);
+if (d >= start && d <= end) {
+var dk = dateKey(d);
+parJour[dk].total += cahier[k].length;
+for (var i = 0; i < cahier[k].length; i++) {
+total++;
+if (cahier[k][i].effectue === true) {
+fait++;
+parJour[dk].fait++;
 }
 }
-if (!aTaches) html += '<div class="empty-state"><p>Aucun devoir a venir</p></div>';
-html += '</div>';
-cont.innerHTML = html;
-document.querySelectorAll('#ed-content .date-pill').forEach(function(el) {
-el.addEventListener('click', function(e) { e.stopPropagation(); voirJour(this.getAttribute('data-date')); });
+}
+}
+var maxParJour = 0;
+for (var k in parJour) if (parJour[k].total > maxParJour) maxParJour = parJour[k].total;
+var reste = total - fait;
+var pct = total > 0 ? Math.round((fait / total) * 100) : 0;
+return { total: total, fait: fait, reste: reste, pct: pct, maxParJour: maxParJour, parJour: parJour, start: start };
+}
+
+function getTomorrowReste() {
+var tomorrow = new Date();
+tomorrow.setDate(tomorrow.getDate() + 1);
+var dk = dateKey(tomorrow);
+var reste = 0;
+if (cahier[dk]) {
+for (var i = 0; i < cahier[dk].length; i++) {
+if (cahier[dk][i].effectue !== true) reste++;
+}
+}
+return reste;
+}
+
+function getTopMatieres() {
+var now = new Date();
+var start = new Date(now);
+var day = start.getDay();
+var diff = start.getDate() - day + (day === 0 ? -6 : 1);
+start.setDate(diff);
+start.setHours(0, 0, 0, 0);
+var end = new Date(start);
+end.setDate(start.getDate() + 6);
+
+var counts = {};
+var totals = {};
+for (var k in cahier) {
+var d = parseDateKey(k);
+if (d >= start && d <= end) {
+for (var i = 0; i < cahier[k].length; i++) {
+var mat = cahier[k][i].matiere || 'Autres';
+if (!counts[mat]) counts[mat] = { total: 0, fait: 0, jours: {} };
+counts[mat].total++;
+counts[mat].jours[dateKey(d)] = (counts[mat].jours[dateKey(d)] || 0) + 1;
+if (cahier[k][i].effectue === true) counts[mat].fait++;
+}
+totals[mat] = (totals[mat] || 0) + 1;
+}
+}
+var arr = [];
+for (var m in counts) {
+var nbJours = Object.keys(counts[m].jours).length;
+arr.push({ nom: m, count: counts[m].total, fait: counts[m].fait, jours: nbJours });
+}
+arr.sort(function(a, b) { return b.count - a.count; });
+var top = arr.slice(0, 2);
+var autresCount = 0, autresFait = 0, autresTotal = 0;
+for (var i = 2; i < arr.length; i++) {
+autresCount += arr[i].jours;
+autresFait += arr[i].fait;
+autresTotal += arr[i].count;
+}
+if (autresTotal > 0) {
+top.push({ nom: 'Autres', count: autresTotal, fait: autresFait, jours: autresCount, isAutres: true });
+}
+return { top: top, total: arr.reduce(function(s, x) { return s + x.count; }, 0) };
+}
+
+function buildWeekChart(stats) {
+var days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+var maxVal = 0;
+var vals = [];
+for (var i = 0; i < 7; i++) {
+var d = new Date(stats.start);
+d.setDate(stats.start.getDate() + i);
+var dk = dateKey(d);
+var v = stats.parJour[dk] ? stats.parJour[dk].total : 0;
+vals.push(v);
+if (v > maxVal) maxVal = v;
+}
+if (maxVal < 1) maxVal = 5;
+var svg = '<svg class="cdt-chart" viewBox="0 0 460 240">';
+svg += '<defs><linearGradient id="cdtArea" x1="0" y1="0" x2="0" y2="1">';
+svg += '<stop offset="0%" stop-color="#dd8f2d" stop-opacity=".85"/>';
+svg += '<stop offset="100%" stop-color="#dd8f2d" stop-opacity=".05"/>';
+svg += '</linearGradient></defs>';
+svg += '<g font-size="9" fill="#8a94a0">';
+var ySteps = [0, 20, 40, 60, 80, 100];
+for (var i = 0; i < ySteps.length; i++) {
+var y = 209 - (ySteps[i] / 100) * (209 - 14);
+var val = Math.round((ySteps[i] / 100) * maxVal);
+svg += '<text x="20" y="' + (y + 3) + '" text-anchor="end">' + val + '</text>';
+svg += '<line x1="30" y1="' + y + '" x2="450" y2="' + y + '" stroke="#e7dbc9" stroke-width="1"/>';
+}
+svg += '</g>';
+var points = [];
+for (var i = 0; i < 7; i++) {
+var x = 40 + i * (400 / 6);
+var y = 209 - (vals[i] / maxVal) * (209 - 14);
+points.push({ x: x, y: y });
+}
+var pathLine = 'M' + points[0].x + ',' + points[0].y;
+for (var i = 1; i < points.length; i++) {
+var prev = points[i - 1];
+var cur = points[i];
+var cpx1 = prev.x + (cur.x - prev.x) / 3;
+var cpx2 = prev.x + 2 * (cur.x - prev.x) / 3;
+pathLine += ' C' + cpx1 + ',' + prev.y + ' ' + cpx2 + ',' + cur.y + ' ' + cur.x + ',' + cur.y;
+}
+var pathArea = pathLine + ' L' + points[points.length - 1].x + ',209 L' + points[0].x + ',209 Z';
+svg += '<path d="' + pathArea + '" fill="url(#cdtArea)"/>';
+svg += '<path d="' + pathLine + '" fill="none" stroke="#d8842c" stroke-width="2.5" stroke-linecap="round"/>';
+for (var i = 0; i < points.length; i++) {
+svg += '<circle cx="' + points[i].x + '" cy="' + points[i].y + '" r="3.5" fill="#fff" stroke="#d8842c" stroke-width="2"/>';
+}
+svg += '<g font-size="9" fill="#8a94a0" text-anchor="middle">';
+for (var i = 0; i < 7; i++) {
+svg += '<text x="' + points[i].x + '" y="230">' + days[i] + '</text>';
+}
+svg += '</g>';
+svg += '</svg>';
+return svg;
+}
+
+function buildCalendar() {
+var y = cdtCurrentMonth.getFullYear();
+var m = cdtCurrentMonth.getMonth();
+var firstDay = new Date(y, m, 1);
+var startDow = firstDay.getDay();
+startDow = startDow === 0 ? 6 : startDow - 1;
+var daysInMonth = new Date(y, m + 1, 0).getDate();
+var prevDays = new Date(y, m, 0).getDate();
+var today = new Date();
+today.setHours(0, 0, 0, 0);
+
+var h = '<div class="cdt-cal">';
+h += '<div class="cdt-cal-head">';
+h += '<button id="cdtPrev"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>';
+h += '<span>' + moisFr(m) + ' ' + y + '</span>';
+h += '<button id="cdtNext"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>';
+h += '</div>';
+h += '<div class="cdt-cal-grid">';
+var dows = ['L', 'M', 'Me', 'J', 'V', 'S', 'D'];
+for (var i = 0; i < 7; i++) h += '<span class="cdt-dow">' + dows[i] + '</span>';
+for (var i = startDow - 1; i >= 0; i--) {
+h += '<span class="cdt-day dim">' + (prevDays - i) + '</span>';
+}
+for (var d = 1; d <= daysInMonth; d++) {
+var dt = new Date(y, m, d);
+var dk = dateKey(dt);
+var hasHw = cahier[dk] && cahier[dk].length > 0;
+var isToday = isSameDay(dt, today);
+var isSelected = cdtSelectedDate && isSameDay(dt, cdtSelectedDate);
+var cls = 'cdt-day';
+if (hasHw) cls += ' att';
+if (isToday) cls += ' today';
+if (isSelected) cls += ' selected';
+h += '<span class="' + cls + '" data-dk="' + dk + '">' + d + '</span>';
+}
+var totalCells = startDow + daysInMonth;
+var trailing = (7 - (totalCells % 7)) % 7;
+for (var i = 1; i <= trailing; i++) {
+h += '<span class="cdt-day dim">' + i + '</span>';
+}
+h += '</div></div>';
+return h;
+}
+
+function buildSelectedList() {
+if (!cdtSelectedDate) {
+return '<div class="cdt-empty"><p>Choisis un jour dans le calendrier</p></div>';
+}
+var dk = dateKey(cdtSelectedDate);
+var taches = cahier[dk] || [];
+var jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+var titre = 'Devoirs pour le ' + cdtSelectedDate.getDate() + ' ' + moisFr(cdtSelectedDate.getMonth()).toLowerCase() + ' ' + cdtSelectedDate.getFullYear();
+var h = '<div class="cdt-card">';
+h += '<div class="cdt-card-head"><h2>' + titre + '</h2></div>';
+if (taches.length === 0) {
+h += '<div class="cdt-empty"><p>Aucun devoir ce jour-la</p></div>';
+} else {
+for (var i = 0; i < taches.length; i++) {
+var t = taches[i];
+var fait = t.effectue === true;
+var type = t.interrogation ? 'EVALUATION' : 'Devoir';
+var mat = t.matiere || 'Autre';
+var tid = t.idDevoir || t.id;
+h += '<div class="cdt-sched-item">';
+h += '<div class="cdt-date-blk"><b>' + cdtSelectedDate.getDate() + '</b><i>' + moisFr(cdtSelectedDate.getMonth()).substring(0, 3).toLowerCase() + '</i></div>';
+h += '<div class="cdt-sched-mid"><h3>' + mat + '</h3></div>';
+h += '<div class="cdt-times">' + type + '<br>';
+h += '<span style="color:' + (fait ? '#35c26e' : '#dd8f2d') + ';font-weight:600;">' + (fait ? 'Fait' : 'NON FAIT') + '</span>';
+h += '</div>';
+h += '<button class="cdt-mark-btn cdt-btn-sm" data-id="' + tid + '" data-done="' + fait + '">' + (fait ? 'Annuler' : 'Marquer fait') + '</button>';
+h += '</div>';
+}
+}
+h += '</div>';
+return h;
+}
+
+function buildTopMatieres() {
+var data = getTopMatieres();
+var h = '<div class="cdt-inst-grid">';
+for (var i = 0; i < data.top.length; i++) {
+var m = data.top[i];
+h += '<div class="cdt-inst">';
+h += '<div class="cdt-inst-top"><div><b>' + m.nom + '</b><small>' + m.jours + ' fois cette semaine</small></div></div>';
+h += '<button class="cdt-btn solid">' + m.nom.toUpperCase() + '</button>';
+h += '<button class="cdt-btn outline">' + m.fait + '/' + m.count + ' devoirs</button>';
+h += '</div>';
+}
+if (data.top.length === 0) {
+h += '<div class="cdt-empty"><p>Aucun devoir cette semaine</p></div>';
+}
+h += '</div>';
+return h;
+}
+
+function render() {
+var stats = getWeekStats();
+var tomorrowReste = getTomorrowReste();
+var now = new Date();
+var startWeek = new Date(now);
+var day = startWeek.getDay();
+var diff = startWeek.getDate() - day + (day === 0 ? -6 : 1);
+startWeek.setDate(diff);
+var endWeek = new Date(startWeek);
+endWeek.setDate(startWeek.getDate() + 6);
+var semaineTxt = 'du ' + startWeek.getDate() + ' au ' + endWeek.getDate();
+
+var h = '<div class="cdt-wrap">';
+h += '<div class="cdt-welcome">';
+h += '<div><h1>Cahier de Texte</h1><p>devoirs restant pour demain: ' + tomorrowReste + '</p></div>';
+h += '<div class="cdt-stats">';
+h += '<div class="cdt-stat"><div class="cdt-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg><span class="cdt-num">' + stats.fait + '</span></div><div class="cdt-lbl">fait pour la semaine</div></div>';
+h += '<div class="cdt-stat"><div class="cdt-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="cdt-num">' + stats.maxParJour + '</span></div><div class="cdt-lbl">devoirs max par jour</div></div>';
+h += '<div class="cdt-stat"><div class="cdt-row"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="14" r="8"/><line x1="12" y1="14" x2="12" y2="10"/><line x1="9" y1="2" x2="15" y2="2"/><line x1="12" y1="2" x2="12" y2="6"/></svg><span class="cdt-num">' + stats.reste + '</span></div><div class="cdt-lbl">a terminer</div></div>';
+h += '</div></div>';
+
+h += '<div class="cdt-grid-mid">';
+h += '<div class="cdt-card"><h2>devoirs hebdomadaires</h2>';
+h += '<p class="cdt-module">cette semaine, ' + semaineTxt + '</p>';
+h += '<div class="cdt-track"><div class="cdt-fill" style="width:' + stats.pct + '%;"></div></div>';
+h += '<p class="cdt-pct">' + stats.pct + '% termine</p>';
+h += buildWeekChart(stats);
+h += '<p class="cdt-pct">devoirs par jour de la semaine</p></div>';
+
+h += '<div class="cdt-card"><div class="cdt-card-head" style="margin-bottom:6px;"><h2>calendrier</h2></div>';
+h += '<p class="cdt-att-sub">choisis un jour pour voir les devoirs</p>';
+h += buildCalendar();
+h += '</div>';
+
+h += '<div id="cdtListe">' + buildSelectedList() + '</div>';
+h += '</div>';
+
+h += '<div class="cdt-grid-bot">';
+h += '<div class="cdt-card"><h2>matieres les plus presentes cette semaine</h2>';
+h += buildTopMatieres();
+h += '</div>';
+h += '<div class="cdt-card"><div class="cdt-card-head"><h2>INFOS</h2></div><small>rien pour l\'instant...</small></div>';
+h += '</div>';
+h += '</div>';
+
+cont.innerHTML = h;
+bind();
+}
+
+function bind() {
+var prev = document.getElementById('cdtPrev');
+var next = document.getElementById('cdtNext');
+if (prev) prev.addEventListener('click', function(e) {
+e.stopPropagation();
+cdtCurrentMonth.setMonth(cdtCurrentMonth.getMonth() - 1);
+render();
 });
-document.querySelectorAll('#ed-content .task-card').forEach(function(el) {
-el.addEventListener('click', function(e) { var dateKey = this.getAttribute('data-date'); if (dateKey) { voirJour(dateKey); } });
+if (next) next.addEventListener('click', function(e) {
+e.stopPropagation();
+cdtCurrentMonth.setMonth(cdtCurrentMonth.getMonth() + 1);
+render();
 });
+cont.querySelectorAll('.cdt-day[data-dk]').forEach(function(el) {
+el.addEventListener('click', function(e) {
+e.stopPropagation();
+cdtSelectedDate = parseDateKey(this.getAttribute('data-dk'));
+render();
+});
+});
+cont.querySelectorAll('.cdt-mark-btn').forEach(function(btn) {
+btn.addEventListener('click', function(e) {
+e.stopPropagation();
+var idTache = parseInt(this.getAttribute('data-id'));
+var faitActuel = this.getAttribute('data-done') === 'true';
+window.marquerDevoir(idTache, !faitActuel, this);
+setTimeout(render, 400);
+});
+});
+}
+
+render();
 }
 function carnet2() {
 var cont = document.getElementById('ed-content');
@@ -1829,6 +2118,7 @@ iframeContainer.appendChild(iframe);
 iframeContainer.innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#667080;text-align:center;">Erreur: ' + err.message + '<br><button onclick="this.closest(\'#ed-app-overlay\').remove()" class="btn-ed ghost" style="margin-top:16px;">Fermer</button></div>';
 });
 }
+function appDataImg(app) { return app.baseUrl + app.img; }
 function apps() {
 var cont = document.getElementById('ed-content');
 if (!cont) return;
@@ -1891,104 +2181,69 @@ apps();
 }
 });
 });
-function appDataImg(app) { return app.baseUrl + app.img; }
 }
 function param() {
 var cont = document.getElementById('ed-content');
 if (!cont) return;
 var saveSur = localStorage.getItem('ed_notesSur') || '20';
 var saveProf = localStorage.getItem('ed_showProfName') === 'true';
-var saveAff = localStorage.getItem('ed_notesDisplay') || 'pastilles';
 var saveRond = parseInt(localStorage.getItem('ed_roundness') || '8');
-var saveAutoToken = localStorage.getItem('ed_autoToken') !== 'false';
 var saveAppsTab = localStorage.getItem('ed_showAppsTab') !== 'false';
-var html = '<div class="settings-container">';
-html += '<div style="background:#1b1e25;border-radius:14px;padding:24px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.08);">';
-html += '<h2 style="color:#e8f1ff;margin-bottom:20px;font-size:20px;letter-spacing:-0.02em;">Parametres</h2>';
-html += '<div style="margin-bottom:24px;">';
-html += '<div style="color:#667080;font-size:10.5px;text-transform:uppercase;letter-spacing:0.14em;margin-bottom:12px;font-family:\'JetBrains Mono\',monospace;">General</div>';
-html += '<label class="check"><input type="checkbox" id="autoTokenToggle" ' + (saveAutoToken ? 'checked' : '') + '><span class="box"><svg width="9" height="8" viewBox="0 0 10 8"><path d="M1 4l2.5 2.5L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span>Enregistrer la session</label>';
-html += '<label class="check"><input type="checkbox" id="appsTabToggle" ' + (saveAppsTab ? 'checked' : '') + '><span class="box"><svg width="9" height="8" viewBox="0 0 10 8"><path d="M1 4l2.5 2.5L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span>Afficher Apps</label>';
-html += '<label class="check"><input type="checkbox" id="profToggle" ' + (saveProf ? 'checked' : '') + '><span class="box"><svg width="9" height="8" viewBox="0 0 10 8"><path d="M1 4l2.5 2.5L9 1" stroke="currentColor" stroke-width="1.6" fill="none"/></svg></span>Masquer le nom du prof</label>';
+var html = '<div class="light-wrap"><div class="set-app">';
+html += '<div class="set-head"><h1>Parametres</h1><span class="set-tab">Visuel</span></div>';
+html += '<div class="set-card"><div class="set-row"><div>';
+html += '<div class="set-title">Afficher apps</div>';
+html += '<div class="set-desc">Afficher l\'onglet application dans le menu</div>';
+html += '</div><label class="set-switch"><input type="checkbox" id="appsTabToggle" ' + (saveAppsTab ? 'checked' : '') + '><span class="sl"></span></label></div></div>';
+html += '<div class="set-card"><div class="set-row"><div>';
+html += '<div class="set-title">Masquer les noms</div>';
+html += '<div class="set-desc">Masque les noms des professeurs dans vie scolaire et messagerie (BETA)</div>';
+html += '</div><label class="set-switch"><input type="checkbox" id="profToggle" ' + (saveProf ? 'checked' : '') + '><span class="sl"></span></label></div></div>';
+html += '<div class="set-card">';
+html += '<div class="set-row"><div class="set-title">Arrondi</div><span class="set-val" id="rondValLabel">' + saveRond + 'px</span></div>';
+html += '<input type="range" id="rondSlider" class="set-range" min="0" max="50" value="' + saveRond + '">';
 html += '</div>';
-html += '<div style="margin-bottom:24px;">';
-html += '<div style="color:#667080;font-size:10.5px;text-transform:uppercase;letter-spacing:0.14em;margin-bottom:12px;font-family:\'JetBrains Mono\',monospace;">Affichage</div>';
-html += '<div style="margin-bottom:14px;"><label style="color:#e9ecf2;display:block;margin-bottom:6px;font-size:13px;">Affichage des notes</label>';
-html += '<select id="notesAffSelect"><option value="pastilles" ' + (saveAff === 'pastilles' ? 'selected' : '') + '>Blocs</option><option value="liste" ' + (saveAff === 'liste' ? 'selected' : '') + '>Liste</option></select></div>';
-html += '<div style="margin-bottom:14px;"><label style="color:#e9ecf2;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px;">Arrondi <span id="rondValLabel" style="color:#e8f1ff;font-family:\'JetBrains Mono\',monospace;font-size:11px;">' + saveRond + 'px</span></label>';
-html += '<input type="range" id="rondSlider" min="0" max="50" value="' + saveRond + '" style="width:100%;"></div>';
-html += '</div>';
-html += '<div style="margin-bottom:24px;">';
-html += '<div style="color:#667080;font-size:10.5px;text-transform:uppercase;letter-spacing:0.14em;margin-bottom:12px;font-family:\'JetBrains Mono\',monospace;">Notes</div>';
-html += '<div style="margin-bottom:14px;"><label style="color:#e9ecf2;display:block;margin-bottom:6px;font-size:13px;">Notes sur</label>';
-html += '<input type="number" id="notesSurInput" value="' + saveSur + '" step="1" min="0" max="20"></div>';
-html += '</div>';
-html += '<div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:20px;">';
-html += '<button id="infoBtn" class="btn-ed ghost" style="width:100%;margin-bottom:12px;">Info</button>';
-html += '<button id="effacerBtn" class="btn-ed danger" style="width:100%;">Tout effacer</button>';
-html += '<div id="glisseConfirm" style="display:none;background:#14161c;border-radius:7px;padding:4px;position:relative;height:56px;overflow:hidden;margin-top:12px;border:1px solid rgba(255,255,255,0.08);">';
-html += '<div id="glisseTrack" style="width:100%;height:100%;background:#1b1e25;border-radius:6px;position:relative;">';
-html += '<div id="glisseHandle" style="width:56px;height:56px;background:#20242c;border-radius:6px;position:absolute;left:0;top:0;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#e8f1ff;z-index:2;font-size:20px;border:1px solid rgba(255,255,255,0.16);">→</div>';
-html += '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#9aa3b1;pointer-events:none;z-index:1;font-size:13px;">Glisse pour confirmer</div>';
-html += '</div></div></div>';
+html += '<div class="set-card"><div class="set-row"><div>';
+html += '<div class="set-title">Notes sur</div>';
+html += '<div class="set-desc">note sur cette valeur</div>';
+html += '</div><input type="number" id="notesSurInput" class="set-num" value="' + saveSur + '" step="1" min="0" max="20"></div></div>';
+html += '<button id="confirmReset" class="set-confirm">suprimer les cookies</button>';
 html += '</div></div>';
 cont.innerHTML = html;
 function appliquerParams() {
 var inpSur = document.getElementById('notesSurInput');
 var toggleProf = document.getElementById('profToggle');
-var autoToken = document.getElementById('autoTokenToggle');
 var appsTab = document.getElementById('appsTabToggle');
-var notesAff = document.getElementById('notesAffSelect');
 if (inpSur) { localStorage.setItem('ed_notesSur', inpSur.value); sur = inpSur.value; }
 if (toggleProf) { localStorage.setItem('ed_showProfName', toggleProf.checked); profNom = toggleProf.checked; }
-if (autoToken) { localStorage.setItem('ed_autoToken', autoToken.checked); }
 if (appsTab) { localStorage.setItem('ed_showAppsTab', appsTab.checked); updateAppsVisibility(); }
-if (notesAff) { localStorage.setItem('ed_notesDisplay', notesAff.value); aff = notesAff.value; }
 if (onglet === 'notes') notes();
 else if (onglet === 'accueil') accueil();
-if (onglet === 'carnet2') carnet2();
+else if (onglet === 'carnet2') carnet2();
 }
-document.getElementById('autoTokenToggle').addEventListener('change', appliquerParams);
 document.getElementById('appsTabToggle').addEventListener('change', appliquerParams);
 document.getElementById('profToggle').addEventListener('change', appliquerParams);
-document.getElementById('notesAffSelect').addEventListener('change', appliquerParams);
+document.getElementById('notesSurInput').addEventListener('change', appliquerParams);
 var slRond = document.getElementById('rondSlider');
 var lbRond = document.getElementById('rondValLabel');
-if (slRond) {
-slRond.addEventListener('input', function() {
+if (slRond) slRond.addEventListener('input', function() {
 lbRond.textContent = this.value + 'px';
 appliquerRond(parseInt(this.value));
 });
-}
-document.getElementById('notesSurInput').addEventListener('change', appliquerParams);
-var btnInfo = document.getElementById('infoBtn');
-if (btnInfo) {
-btnInfo.addEventListener('click', function() {
-var m = document.createElement('div');
-m.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,12,16,0.8);backdrop-filter:blur(8px);z-index:10000001;display:flex;align-items:center;justify-content:center;';
-var c = document.createElement('div');
-c.style.cssText = 'background:#1b1e25;border-radius:14px;padding:24px;max-width:360px;width:90%;text-align:center;border:1px solid rgba(255,255,255,0.16);';
-c.innerHTML = '<h2 style="color:#e8f1ff;margin-bottom:10px;">EcoleDirecte-</h2><p style="color:#e9ecf2;font-size:13px;line-height:1.6;margin-bottom:16px;">Version 26.6.7<br>Corrections et ameliorations<br><br><a href="https://github.com/NotANumber-dev/ecoledirecte-" target="_blank" style="color:#e8f1ff;">GitHub</a></p><button id="closeInfo" class="btn-ed primary">Fermer</button>';
-m.appendChild(c);
-document.body.appendChild(m);
-m.onclick = function(e) { if (e.target === m) m.remove(); };
-document.getElementById('closeInfo').addEventListener('click', function() { m.remove(); });
-});
-}
-var btnEffacer = document.getElementById('effacerBtn');
-var divGlisse = document.getElementById('glisseConfirm');
-var handleGlisse = document.getElementById('glisseHandle');
-var trackGlisse = document.getElementById('glisseTrack');
-if (btnEffacer) btnEffacer.addEventListener('click', function() { divGlisse.style.display = 'block'; handleGlisse.style.left = '0px'; });
-var glisseActif = false, debutX = 0, largeurHandle = 56, largeurTrack = 0;
-function demarrerGlisse(x) { glisseActif = true; debutX = x; largeurTrack = trackGlisse.offsetWidth; }
-function bougerGlisse(x) {
-if (!glisseActif) return;
-var d = x - debutX;
-var nl = Math.max(0, Math.min(largeurTrack - largeurHandle, d));
-handleGlisse.style.left = nl + 'px';
-if (nl >= largeurTrack - largeurHandle - 5) {
-glisseActif = false;
+var btnConf = document.getElementById('confirmReset');
+var arme = false, timerConf = null;
+btnConf.addEventListener('click', function() {
+if (!arme) {
+arme = true;
+btnConf.classList.add('armed');
+btnConf.textContent = 'est tu sur? cette action est irreversible.';
+timerConf = setTimeout(function() {
+arme = false;
+btnConf.classList.remove('armed');
+btnConf.textContent = 'suprimer les cookies';
+}, 3000);
+} else {
+clearTimeout(timerConf);
 var keys = [];
 for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.startsWith('ed_')) keys.push(k); }
 keys.forEach(function(k) { localStorage.removeItem(k); });
@@ -1996,25 +2251,7 @@ sessionStorage.removeItem("credentials");
 sessionStorage.removeItem("accounts");
 location.reload();
 }
-}
-function finGlisse() {
-if (!glisseActif) return;
-glisseActif = false;
-var cl = parseInt(handleGlisse.style.left);
-if (cl < largeurTrack - largeurHandle - 5) {
-handleGlisse.style.transition = 'left 0.3s ease';
-handleGlisse.style.left = '0px';
-setTimeout(function() { handleGlisse.style.transition = ''; }, 300);
-}
-}
-if (handleGlisse) {
-handleGlisse.addEventListener('mousedown', function(e) { demarrerGlisse(e.clientX); });
-handleGlisse.addEventListener('touchstart', function(e) { demarrerGlisse(e.touches[0].clientX); });
-}
-document.addEventListener('mousemove', function(e) { bougerGlisse(e.clientX); });
-document.addEventListener('mouseup', finGlisse);
-document.addEventListener('touchmove', function(e) { bougerGlisse(e.touches[0].clientX); });
-document.addEventListener('touchend', finGlisse);
+});
 }
 async function rafraichirNotes() {
 var fab = document.getElementById('refreshFab');
@@ -2136,6 +2373,27 @@ body { font-family: 'Space Grotesk', system-ui, sans-serif; }
 #ed-widget .mi.sm{width:12px;height:12px}
 .light-wrap{margin:-24px -28px;min-height:calc(100vh - 48px);padding:24px 28px;background:linear-gradient(180deg,#e9ecf1 0%,#ccd2db 100%);font-family:'Inter',system-ui,sans-serif;color:#0f172a;}
 @media(max-width:768px){.light-wrap{margin:-70px -14px -14px;padding:70px 14px 14px;}}
+.set-app{max-width:720px;margin:0 auto;font-family:'Inter',system-ui,sans-serif;color:#0f172a;}
+.set-head{display:flex;align-items:center;gap:12px;margin-bottom:26px;flex-wrap:wrap;}
+.set-head h1{font-size:30px;font-weight:700;letter-spacing:-0.02em;color:#0f172a;}
+.set-tab{padding:5px 13px;border-radius:999px;background:#eef3ff;color:#1a56ff;font-size:12px;font-weight:600;}
+.set-card{background:#fff;border:1px solid #edeff4;border-radius:16px;padding:20px 22px;margin-bottom:14px;box-shadow:0 2px 8px rgba(15,23,42,0.05);}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:20px;}
+.set-title{font-size:15px;font-weight:600;color:#0f172a;}
+.set-desc{font-size:12.5px;color:#8a94a6;margin-top:4px;line-height:1.5;max-width:440px;}
+.set-switch{position:relative;display:inline-block;width:46px;height:26px;flex-shrink:0;}
+.set-switch input{opacity:0;width:0;height:0;}
+.set-switch .sl{position:absolute;cursor:pointer;inset:0;background:#e2e6ee;border-radius:999px;transition:.25s;}
+.set-switch .sl:before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.25s;box-shadow:0 1px 3px rgba(15,23,42,.25);}
+.set-switch input:checked + .sl{background:#1a56ff;}
+.set-switch input:checked + .sl:before{transform:translateX(20px);}
+.set-range{width:100%;accent-color:#1a56ff;margin-top:16px;cursor:pointer;}
+.set-val{color:#1a56ff;font-weight:700;font-size:13px;}
+.set-num{width:110px;padding:10px 12px;border:1px solid #edeff4;border-radius:10px;font:inherit;font-size:14px;color:#0f172a;background:#f8fafc;outline:none;transition:.2s;}
+.set-num:focus{border-color:#1a56ff;background:#fff;box-shadow:0 0 0 3px rgba(26,86,255,.12);}
+.set-confirm{width:100%;margin-top:22px;padding:15px;border:none;border-radius:14px;background:#0f172a;color:#fff;font:600 14px 'Inter',system-ui,sans-serif;cursor:pointer;transition:.25s;}
+.set-confirm:hover{background:#1e293b;}
+.set-confirm.armed{background:#f43f5e;}
 .hui-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;background:#fff;padding:24px;box-shadow:0 10px 30px rgba(15,23,42,.08);margin-bottom:16px;border-radius:20px;}
 .hui-eyebrow{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8a94a6;font-weight:700;margin-bottom:6px;}
 .hui-title{font-size:28px;font-weight:700;letter-spacing:-.02em;color:#0f172a;}
@@ -2310,10 +2568,9 @@ body { font-family: 'Space Grotesk', system-ui, sans-serif; }
 .dash-legend .dash-dot{width:10px;height:10px;border-radius:50%;margin-right:10px;display:inline-block;flex-shrink:0;}
 .dash-legend b{margin-left:auto;color:#1a1a1a;font-size:14px;font-weight:600;}
 @media(max-width:768px){
-  .dash-stats{grid-template-columns:1fr 1fr;row-gap:20px;}
-  .dash-row{grid-template-columns:1fr;}
+.dash-stats{grid-template-columns:1fr 1fr;row-gap:20px;}
+.dash-row{grid-template-columns:1fr;}
 }
-
 @media(max-width:768px){
 .m-container { margin-left:0 !important; padding:70px 14px 14px; }
 #ed-menu-fab { display:flex; }
@@ -2324,6 +2581,64 @@ body { font-family: 'Space Grotesk', system-ui, sans-serif; }
 .stat-value{font-size:32px;}
 .annual-value{font-size:40px;}
 }
+.cdt-wrap{margin:-24px -28px;padding:24px 28px;min-height:calc(100vh - 48px);background:linear-gradient(120deg,#fdf9f2 0%,#faeadb 55%,#f8e1cb 100%);color:var(--navy,#1f3a52);font-family:'Inter',sans-serif;}
+@media(max-width:768px){.cdt-wrap{margin:-70px -14px -14px;padding:70px 14px 14px;}}
+.cdt-wrap *{box-sizing:border-box;}
+.cdt-welcome{display:flex;justify-content:space-between;align-items:flex-end;margin:26px 0 34px;flex-wrap:wrap;gap:24px;}
+.cdt-welcome h1{font-size:32px;font-weight:600;color:#21384d;}
+.cdt-welcome p{margin-top:10px;font-size:18px;color:#33475b;}
+.cdt-stats{display:flex;gap:48px;}
+.cdt-stat{text-align:center;}
+.cdt-row{display:flex;align-items:center;gap:10px;justify-content:center;color:#31485d;}
+.cdt-num{font-size:46px;font-weight:600;color:#21384d;line-height:1;}
+.cdt-lbl{font-size:12px;color:#4d6072;margin-top:6px;}
+.cdt-card{background:rgba(255,253,248,.55);border:1px solid rgba(255,255,255,.65);border-radius:18px;padding:24px;box-shadow:0 10px 28px rgba(180,120,60,.08);}
+.cdt-card h2{font-size:20px;font-weight:600;color:#21384d;}
+.cdt-grid-mid{display:grid;grid-template-columns:1.35fr .82fr 1fr;gap:24px;margin-bottom:24px;}
+.cdt-grid-bot{display:grid;grid-template-columns:2.05fr 1fr;gap:24px;}
+.cdt-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.cdt-module{font-size:13px;color:#5c6c7c;margin:6px 0 18px;}
+.cdt-track{height:8px;background:#e9ddcc;border-radius:99px;overflow:hidden;}
+.cdt-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#d8801f,#e8a33c);}
+.cdt-pct{font-size:11px;color:#5c6c7c;margin:8px 0 6px;}
+.cdt-chart{width:100%;height:auto;display:block;}
+.cdt-att-sub{font-size:13px;color:#33475b;margin:4px 0 18px;}
+.cdt-cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding:0 6px;}
+.cdt-cal-head span{font-size:14px;font-weight:600;color:#21384d;}
+.cdt-cal-head button{background:none;border:none;cursor:pointer;color:#21384d;display:flex;padding:4px;}
+.cdt-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);row-gap:10px;text-align:center;}
+.cdt-dow{font-size:11px;font-weight:600;color:#d9962b;}
+.cdt-day{font-size:13px;color:#31485d;width:32px;height:32px;display:flex;align-items:center;justify-content:center;margin:0 auto;border-radius:50%;cursor:pointer;transition:.2s;}
+.cdt-day.dim{color:#9aa7b4;cursor:default;}
+.cdt-day.att{color:#dd8f2d;font-weight:600;}
+.cdt-day.today{background:#dd8f2d;color:#fff;font-weight:600;}
+.cdt-day.selected{background:#1f3a52;color:#fff;font-weight:600;}
+.cdt-day:not(.dim):hover{background:rgba(221,143,45,.2);}
+.cdt-sched-item{display:flex;gap:14px;background:rgba(255,255,255,.45);border-radius:14px;padding:16px;margin-bottom:14px;align-items:center;}
+.cdt-sched-item:last-child{margin-bottom:0;}
+.cdt-date-blk{text-align:center;min-width:34px;}
+.cdt-date-blk b{display:block;font-size:17px;color:#21384d;}
+.cdt-date-blk i{font-style:normal;font-size:11px;color:#7d8b99;}
+.cdt-sched-mid{flex:1;}
+.cdt-sched-mid h3{font-size:14px;font-weight:500;color:#21384d;line-height:1.45;}
+.cdt-times{text-align:right;font-size:12px;color:#33475b;line-height:1.7;white-space:nowrap;margin-right:10px;}
+.cdt-mark-btn{background:#f0e0cb;border:1px solid #f0e0cb;border-radius:8px;font-size:11px;font-weight:500;color:#21384d;cursor:pointer;padding:6px 12px;transition:.2s;font-family:inherit;}
+.cdt-mark-btn:hover{background:#e9d5bb;}
+.cdt-btn-sm{font-size:11px;padding:6px 12px;}
+.cdt-inst-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px;}
+.cdt-inst{background:rgba(255,255,255,.4);border-radius:14px;padding:18px 14px;}
+.cdt-inst-top{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.cdt-inst-top b{display:block;font-size:14px;font-weight:600;color:#21384d;line-height:1.3;}
+.cdt-inst-top small{font-size:11px;color:#7d8b99;}
+.cdt-btn{display:block;width:100%;padding:9px 0;border-radius:8px;font-size:12px;font-weight:500;color:#21384d;cursor:pointer;margin-bottom:10px;transition:.2s;text-align:center;font-family:inherit;}
+.cdt-btn:last-child{margin-bottom:0;}
+.cdt-btn.solid{background:#f0e0cb;border:1px solid #f0e0cb;}
+.cdt-btn.solid:hover{background:#e9d5bb;}
+.cdt-btn.outline{background:transparent;border:1px solid #d9c7ae;}
+.cdt-btn.outline:hover{background:rgba(217,199,174,.25);}
+.cdt-empty{text-align:center;padding:24px 10px;color:#5c6c7c;font-size:13px;}
+@media(max-width:1080px){.cdt-grid-mid,.cdt-grid-bot{grid-template-columns:1fr;}.cdt-inst-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:560px){.cdt-inst-grid{grid-template-columns:1fr;}.cdt-stats{gap:28px;flex-wrap:wrap;justify-content:center;}}
 </style>
 <div class="profile-overlay" id="profileOverlay"></div>
 <div class="profile-dropdown" id="profileDropdown">
